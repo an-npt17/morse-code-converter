@@ -38,9 +38,11 @@
           inherit src;
           strictDeps = true;
 
+          nativeBuildInputs = [ pkgs.pkg-config ];
           buildInputs =
             [
               # Add additional build inputs here
+              pkgs.systemd
             ]
             ++ lib.optionals pkgs.stdenv.isDarwin [
               # Additional darwin specific inputs can be set here
@@ -141,8 +143,8 @@
           # MY_CUSTOM_DEVELOPMENT_VAR = "something else";
 
           # Extra inputs can be added here; cargo and rustc are provided by default.
-          packages = [
-            # pkgs.ripgrep
+          packages = with pkgs; [
+            rust-analyzer
           ];
         };
       }
