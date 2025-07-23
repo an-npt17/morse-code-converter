@@ -24,19 +24,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             break;
         }
 
-        match morse_converter.text_to_morse(input) {
-            Ok(morse_code) => {
-                println!("Morse code: {morse_code}");
-
-                // match serial_sender.send_morse(&morse_code) {
-                //     Ok(_) => println!("Successfully sent via serial!"),
-                //     Err(e) => eprintln!("Failed to send via serial: {e}"),
-                // }
-            }
-            Err(e) => eprintln!("Error converting to Morse: {e}"),
-        }
-
-        println!();
+        let morse_code = morse_converter.morse_converter(input);
+        println!("Morse code: {morse_code}");
     }
 
     println!("Goodbye!");
