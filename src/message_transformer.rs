@@ -25,6 +25,7 @@ pub fn convert_dot_message() -> String {
         selected.push('0')
     }
     selected.push('>');
+    selected.push('\n');
     selected.iter().collect()
 }
 
@@ -53,6 +54,7 @@ pub fn convert_dash_message() -> String {
         selected[idx] = choice;
     }
     selected.push('>');
+    selected.push('\n');
     selected.iter().collect()
 }
 pub fn convert_space_message() -> String {
@@ -62,5 +64,6 @@ pub fn convert_space_message() -> String {
         selected.push('0');
     }
     selected.push('>');
+    selected.push('\n');
     selected.iter().collect()
 }

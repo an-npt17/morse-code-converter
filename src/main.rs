@@ -44,23 +44,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for char in list_morse_code {
             if char == '.' {
                 let dot_message = convert_dot_message();
-                println!("{dot_message}\n")
+                println!("{dot_message}")
+                // serial_sender.send_raw(dot_message.as_bytes())
             }
             if char == '-' {
                 let dash_message = convert_dash_message();
-                println!("{dash_message}\n")
+                println!("{dash_message}")
+                // serial_sender.send_raw(dash_message.as_bytes())
             }
 
             if char == ' ' {
                 let space_message = convert_space_message();
-                println!("{space_message}\n")
+                println!("{space_message}")
+                // serial_sender.send_raw(space_message.as_bytes())
             }
         }
 
-        // match serial_sender.send_raw(morse_code.as_bytes()) {
-        //     Ok(_) => println!("Successfully sent via serial!"),
-        //     Err(e) => eprintln!("Failed to send via serial: {e}"),
-        // }
         println!("Morse code: {morse_code}");
     }
 
