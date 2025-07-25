@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Morse Code Message Transmitter</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: #333;
+      }
+
+      .container {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        max-width: 800px;
+        width: 90%;
+        max-height: 90vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      h1 {
+        text-align: center;
+        color: #4a5568;
+        margin-bottom: 2rem;
+        font-size: 2rem;
+        font-weight: 300;
+      }
+
+      .main-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+
+      .input-group {
+        display: flex;
+        gap: 1rem;
+        align-items: stretch;
+      }
+
+      #messageInput {
+        flex: 1;
+        padding: 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        outline: none;
+      }
+
+      #messageInput:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .btn {
+        padding: 1rem 2rem;
+        border: none;
+        border-radius: 10px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+      }
+
+      .btn-secondary {
+        background: #718096;
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        background: #4a5568;
+        transform: translateY(-2px);
+      }
+
+      .btn-danger {
+        background: #e53e3e;
+        color: white;
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+      }
+
+      .btn-danger:hover {
+        background: #c53030;
+      }
+
+      .btn-edit {
+        background: #38a169;
+        color: white;
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+      }
+
+      .btn-edit:hover {
+        background: #2f855a;
+      }
+
+      .message-pool {
+        flex: 1;
+        overflow-y: auto;
+      }
+
+      .message-pool h2 {
+        color: #4a5568;
+        margin-bottom: 1rem;
+        font-size: 1.5rem;
+        font-weight: 300;
+      }
+
+      .message-item {
+        background: #f7fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+      }
+
+      .message-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .message-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+      }
+
+      .message-text {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2d3748;
+      }
+
+      .message-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .message-morse {
+        font-family: "Courier New", monospace;
+        color: #718096;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .message-meta {
+        font-size: 0.8rem;
+        color: #a0aec0;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .edit-form {
+        margin-top: 1rem;
+        display: none;
+      }
+
+      .edit-form.active {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+      }
+
+      .edit-form input {
+        flex: 1;
+        padding: 0.5rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 5px;
+        font-size: 0.9rem;
+      }
+
+      .edit-form input:focus {
+        border-color: #667eea;
+        outline: none;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .status-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 0.5rem;
+      }
+
+      .status-unsent {
+        background: #38a169;
+      }
+
+      .status-sent {
+        background: #718096;
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+      .sending {
+        animation: pulse 1s infinite;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>📡 Morse Code Message Transmitter</h1>
+
+      <div class="main-form">
+        <div class="input-group">
+          <input
+            type="text"
+            id="messageInput"
+            placeholder="Enter your message to convert to Morse code..."
+          />
+          <button class="btn btn-primary" onclick="submitMessage()">
+            Submit Message
+          </button>
+        </div>
+        <button class="btn btn-secondary" onclick="toggleMessagePool()">
+          Toggle Message Pool
+        </button>
+      </div>
+
+      <div id="messagePool" class="message-pool hidden">
+        <h2>Message Pool</h2>
+        <div id="messageList"></div>
+      </div>
+    </div>
+
+    <script>
+      let messages = [];
+      let editingId = null;
+
+      async function submitMessage() {
+        const input = document.getElementById("messageInput");
+        const text = input.value.trim();
+
+        if (!text) {
+          alert("Please enter a message");
+          return;
+        }
+
+        try {
+          const response = await fetch("/api/messages", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ text }),
+          });
+
+          if (response.ok) {
+            input.value = "";
+            await loadMessages();
+          } else {
+            alert("Failed to submit message");
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          alert("Network error");
+        }
+      }
+
+      async function loadMessages() {
+        try {
+          const response = await fetch("/api/messages");
+          messages = await response.json();
+          renderMessages();
+        } catch (error) {
+          console.error("Error loading messages:", error);
+        }
+      }
+
+      function renderMessages() {
+        const messageList = document.getElementById("messageList");
+        messageList.innerHTML = "";
+
+        if (messages.length === 0) {
+          messageList.innerHTML =
+            '<p style="text-align: center; color: #a0aec0; font-style: italic;">No messages in pool</p>';
+          return;
+        }
+
+        // Sort messages by creation time (newest first)
+        const sortedMessages = [...messages].sort(
+          (a, b) => new Date(b.created_at) - new Date(a.created_at),
+        );
+
+        sortedMessages.forEach((message) => {
+          const messageDiv = document.createElement("div");
+          messageDiv.className = "message-item";
+          messageDiv.innerHTML = `
+                    <div class="message-header">
+                        <div class="message-text">
+                            <span class="status-indicator ${message.last_sent ? "status-sent" : "status-unsent"}"></span>
+                            ${message.text}
+                        </div>
+                        <div class="message-actions">
+                            <button class="btn btn-edit" onclick="startEdit('${message.id}')">Edit</button>
+                            <button class="btn btn-danger" onclick="deleteMessage('${message.id}')">Delete</button>
+                        </div>
+                    </div>
+                    <div class="message-morse">${message.morse_code}</div>
+                    <div class="message-meta">
+                        <span>Created: ${new Date(message.created_at).toLocaleString()}</span>
+                        <span>Sent: ${message.send_count} times ${message.last_sent ? "(Last: " + new Date(message.last_sent).toLocaleString() + ")" : "(Never)"}</span>
+                    </div>
+                    <div class="edit-form" id="edit-${message.id}">
+                        <input type="text" value="${message.text}" id="editInput-${message.id}" />
+                        <button class="btn btn-primary" onclick="saveEdit('${message.id}')">Save</button>
+                        <button class="btn btn-secondary" onclick="cancelEdit('${message.id}')">Cancel</button>
+                    </div>
+                `;
+          messageList.appendChild(messageDiv);
+        });
+      }
+
+      function toggleMessagePool() {
+        const pool = document.getElementById("messagePool");
+        if (pool.classList.contains("hidden")) {
+          pool.classList.remove("hidden");
+          loadMessages();
+        } else {
+          pool.classList.add("hidden");
+        }
+      }
+
+      function startEdit(id) {
+        if (editingId && editingId !== id) {
+          cancelEdit(editingId);
+        }
+
+        editingId = id;
+        const editForm = document.getElementById(`edit-${id}`);
+        editForm.classList.add("active");
+        const input = document.getElementById(`editInput-${id}`);
+        input.focus();
+        input.select();
+      }
+
+      function cancelEdit(id) {
+        const editForm = document.getElementById(`edit-${id}`);
+        editForm.classList.remove("active");
+        editingId = null;
+      }
+
+      async function saveEdit(id) {
+        const input = document.getElementById(`editInput-${id}`);
+        const text = input.value.trim();
+
+        if (!text) {
+          alert("Message cannot be empty");
+          return;
+        }
+
+        try {
+          const response = await fetch(`/api/messages/${id}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ text }),
+          });
+
+          if (response.ok) {
+            cancelEdit(id);
+            await loadMessages();
+          } else {
+            alert("Failed to update message");
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          alert("Network error");
+        }
+      }
+
+      async function deleteMessage(id) {
+        if (!confirm("Are you sure you want to delete this message?")) {
+          return;
+        }
+
+        try {
+          const response = await fetch(`/api/messages/${id}`, {
+            method: "DELETE",
+          });
+
+          if (response.ok) {
+            await loadMessages();
+          } else {
+            alert("Failed to delete message");
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          alert("Network error");
+        }
+      }
+
+      // Allow Enter key to submit message
+      document
+        .getElementById("messageInput")
+        .addEventListener("keypress", function (e) {
+          if (e.key === "Enter") {
+            submitMessage();
+          }
+        });
+
+      // Load messages on page load if message pool is visible
+      document.addEventListener("DOMContentLoaded", function () {
+        // Auto-refresh messages every 30 seconds if pool is visible
+        setInterval(() => {
+          const pool = document.getElementById("messagePool");
+          if (!pool.classList.contains("hidden")) {
+            loadMessages();
+          }
+        }, 30000);
+      });
+    </script>
+  </body>
+</html>
