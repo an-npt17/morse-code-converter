@@ -5,9 +5,10 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.98"
+clokwerk = "0.4.0"
 japanese = "0.1.2"
 kakasi = "0.1.0"
-morsify = "0.1.0"
+rand = "0.9.2"
 ripmors = "0.1.0"
 serialport = "4.7.2"
 std-semaphore = "0.1.0"
