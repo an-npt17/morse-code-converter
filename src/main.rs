@@ -195,7 +195,7 @@ async fn delete_existing_message(
 fn start_scheduler(store: MessageStore, morse_converter: Arc<MorseConverter>) {
     let mut scheduler = Scheduler::new();
 
-    scheduler.every(5.minutes()).run(move || {
+    scheduler.every(20.seconds()).run(move || {
         send_random_message(&store, &morse_converter);
     });
 
