@@ -1,5 +1,5 @@
 {
-  description = "Build a cargo project";
+  description = "Cross compiling a rust program using rust-overlay";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -8,147 +8,96 @@
 
     flake-utils.url = "github:numtide/flake-utils";
 
-    advisory-db = {
-      url = "github:rustsec/advisory-db";
-      flake = false;
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
   outputs =
     {
-      self,
       nixpkgs,
       crane,
       flake-utils,
-      advisory-db,
+      rust-overlay,
       ...
     }:
     flake-utils.lib.eachDefaultSystem (
-      system:
+      localSystem:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
+        # Replace with the system you want to build for
+        crossSystem = "aarch64-linux";
 
-        inherit (pkgs) lib;
-
-        craneLib = crane.mkLib pkgs;
-        src = lib.cleanSourceWith {
-          src = craneLib.path ./.;
-          filter = path: type: (lib.hasInfix "/static/" path) || (craneLib.filterCargoSources path type);
+        pkgs = import nixpkgs {
+          inherit crossSystem localSystem;
+          overlays = [ (import rust-overlay) ];
         };
 
-        # Common arguments can be set here to avoid repeating them later
-        commonArgs = {
-          inherit src;
-          strictDeps = true;
+        craneLib = (crane.mkLib pkgs).overrideToolchain (p: p.rust-bin.stable.latest.default);
 
-          nativeBuildInputs = [ pkgs.pkg-config ];
-          buildInputs =
-            [
-              # Add additional build inputs here
-              pkgs.systemd
+        # Note: we have to use the `callPackage` approach here so that Nix
+        # can "splice" the packages in such a way that dependencies are
+        # compiled for the appropriate targets. If we did not do this, we
+        # would have to manually specify things like
+        # `nativeBuildInputs = with pkgs.pkgsBuildHost; [ someDep ];` or
+        # `buildInputs = with pkgs.pkgsHostHost; [ anotherDep ];`.
+        #
+        # Normally you can stick this function into its own file and pass
+        # its path to `callPackage`.
+        crateExpression =
+          {
+            openssl,
+            libiconv,
+            lib,
+            pkg-config,
+            stdenv,
+          }:
+          craneLib.buildPackage {
+            src = lib.cleanSourceWith {
+              src = craneLib.path ./.;
+              filter = path: type: (lib.hasInfix "/static/" path) || (craneLib.filterCargoSources path type);
+            };
+            strictDeps = true;
+
+            # Dependencies which need to be build for the current platform
+            # on which we are doing the cross compilation. In this case,
+            # pkg-config needs to run on the build platform so that the build
+            # script can find the location of openssl. Note that we don't
+            # need to specify the rustToolchain here since it was already
+            # overridden above.
+            nativeBuildInputs = [
+              pkg-config
             ]
-            ++ lib.optionals pkgs.stdenv.isDarwin [
-              # Additional darwin specific inputs can be set here
-              pkgs.libiconv
+            ++ lib.optionals stdenv.buildPlatform.isDarwin [
+              libiconv
             ];
 
-          # Additional environment variables can be set directly
-          # MY_CUSTOM_VAR = "some value";
-        };
+            # Dependencies which need to be built for the platform on which
+            # the binary will run. In this case, we need to compile openssl
+            # so that it can be linked with our executable.
+            buildInputs = [
+              # Add additional build inputs here
+              openssl
+              pkgs.systemd
+            ];
+          };
 
-        # Build *just* the cargo dependencies, so we can reuse
-        # all of that work (e.g. via cachix) when running in CI
-        cargoArtifacts = craneLib.buildDepsOnly commonArgs;
-
-        # Build the actual crate itself, reusing the dependency
-        # artifacts from above.
-        my-crate = craneLib.buildPackage (
-          commonArgs
-          // {
-            inherit cargoArtifacts;
-          }
-        );
+        # Assuming the above expression was in a file called myCrate.nix
+        # this would be defined as:
+        # my-crate = pkgs.callPackage ./myCrate.nix { };
+        my-crate = pkgs.callPackage crateExpression { };
       in
       {
         checks = {
-          # Build the crate as part of `nix flake check` for convenience
           inherit my-crate;
-
-          # Run clippy (and deny all warnings) on the crate source,
-          # again, reusing the dependency artifacts from above.
-          #
-          # Note that this is done as a separate derivation so that
-          # we can block the CI if there are issues here, but not
-          # prevent downstream consumers from building our crate by itself.
-          my-crate-clippy = craneLib.cargoClippy (
-            commonArgs
-            // {
-              inherit cargoArtifacts;
-              cargoClippyExtraArgs = "--all-targets -- --deny warnings";
-            }
-          );
-
-          my-crate-doc = craneLib.cargoDoc (
-            commonArgs
-            // {
-              inherit cargoArtifacts;
-            }
-          );
-
-          # Check formatting
-          my-crate-fmt = craneLib.cargoFmt {
-            inherit src;
-          };
-
-          my-crate-toml-fmt = craneLib.taploFmt {
-            src = pkgs.lib.sources.sourceFilesBySuffices src [ ".toml" ];
-            # taplo arguments can be further customized below as needed
-            # taploExtraArgs = "--config ./taplo.toml";
-          };
-
-          # Audit dependencies
-          my-crate-audit = craneLib.cargoAudit {
-            inherit src advisory-db;
-          };
-
-          # Audit licenses
-          my-crate-deny = craneLib.cargoDeny {
-            inherit src;
-          };
-
-          # Run tests with cargo-nextest
-          # Consider setting `doCheck = false` on `my-crate` if you do not want
-          # the tests to run twice
-          my-crate-nextest = craneLib.cargoNextest (
-            commonArgs
-            // {
-              inherit cargoArtifacts;
-              partitions = 1;
-              partitionType = "count";
-              cargoNextestPartitionsExtraArgs = "--no-tests=pass";
-            }
-          );
         };
 
-        packages = {
-          default = my-crate;
-        };
+        packages.default = my-crate;
 
         apps.default = flake-utils.lib.mkApp {
-          drv = my-crate;
-        };
-
-        devShells.default = craneLib.devShell {
-          # Inherit inputs from checks.
-          checks = self.checks.${system};
-
-          # Additional dev-shell environment variables can be set directly
-          # MY_CUSTOM_DEVELOPMENT_VAR = "something else";
-
-          # Extra inputs can be added here; cargo and rustc are provided by default.
-          packages = with pkgs; [
-            rust-analyzer
-          ];
+          drv = pkgs.writeScriptBin "my-app" ''
+            ${pkgs.pkgsBuildBuild.qemu}/bin/qemu-aarch64 ${my-crate}/bin/cross-rust-overlay
+          '';
         };
       }
     );
