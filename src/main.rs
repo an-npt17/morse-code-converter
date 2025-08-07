@@ -406,10 +406,12 @@ fn send_morse_to_serial(morse_code: &str, tempo_ms: u64) {
                     Ok(_) => println!("Successfully sent dash via serial!"),
                     Err(e) => eprintln!("Failed to send dash via serial: {e}"),
                 }
+                thread::sleep(Duration::from_millis(tempo_ms));
                 match serial_sender.send_raw(space_message.as_bytes()) {
                     Ok(_) => println!("Successfully sent dash via serial!"),
                     Err(e) => eprintln!("Failed to send dash via serial: {e}"),
                 }
+                thread::sleep(Duration::from_millis(tempo_ms));
                 match serial_sender.send_raw(space_message.as_bytes()) {
                     Ok(_) => println!("Successfully sent dash via serial!"),
                     Err(e) => eprintln!("Failed to send dash via serial: {e}"),
