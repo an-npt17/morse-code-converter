@@ -400,8 +400,17 @@ fn send_morse_to_serial(morse_code: &str, tempo_ms: u64) {
             }
             '-' => {
                 let dash_message = convert_dash_message();
+                let space_message = convert_space_message();
                 println!("Sending: {dash_message}");
                 match serial_sender.send_raw(dash_message.as_bytes()) {
+                    Ok(_) => println!("Successfully sent dash via serial!"),
+                    Err(e) => eprintln!("Failed to send dash via serial: {e}"),
+                }
+                match serial_sender.send_raw(space_message.as_bytes()) {
+                    Ok(_) => println!("Successfully sent dash via serial!"),
+                    Err(e) => eprintln!("Failed to send dash via serial: {e}"),
+                }
+                match serial_sender.send_raw(space_message.as_bytes()) {
                     Ok(_) => println!("Successfully sent dash via serial!"),
                     Err(e) => eprintln!("Failed to send dash via serial: {e}"),
                 }
