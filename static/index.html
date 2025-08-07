@@ -71,6 +71,74 @@
         box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
       }
 
+      .file-upload-section {
+        border: 2px dashed #e2e8f0;
+        border-radius: 10px;
+        padding: 1.5rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        background: #f7fafc;
+      }
+
+      .file-upload-section:hover {
+        border-color: #667eea;
+        background: #edf2f7;
+      }
+
+      .file-upload-section.dragover {
+        border-color: #667eea;
+        background: #e6fffa;
+        transform: scale(1.02);
+      }
+
+      .file-input {
+        display: none;
+      }
+
+      .file-upload-label {
+        display: inline-block;
+        padding: 1rem 2rem;
+        background: linear-gradient(135deg, #38a169, #48bb78);
+        color: white;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .file-upload-label:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(56, 161, 105, 0.3);
+      }
+
+      .file-info {
+        margin-top: 1rem;
+        font-size: 0.9rem;
+        color: #718096;
+      }
+
+      .upload-progress {
+        margin-top: 1rem;
+        display: none;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 8px;
+        background: #e2e8f0;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        transition: width 0.3s ease;
+        width: 0%;
+      }
+
       .btn {
         padding: 1rem 2rem;
         border: none;
@@ -227,6 +295,31 @@
         background: #718096;
       }
 
+      .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        border-radius: 10px;
+        color: white;
+        font-weight: 600;
+        z-index: 1000;
+        transform: translateX(400px);
+        transition: transform 0.3s ease;
+      }
+
+      .notification.show {
+        transform: translateX(0);
+      }
+
+      .notification.success {
+        background: linear-gradient(135deg, #38a169, #48bb78);
+      }
+
+      .notification.error {
+        background: linear-gradient(135deg, #e53e3e, #fc8181);
+      }
+
       @keyframes pulse {
         0% {
           opacity: 1;
@@ -259,6 +352,27 @@
             Submit Message
           </button>
         </div>
+
+        <div class="file-upload-section" id="fileUploadSection">
+          <input type="file" id="fileInput" class="file-input" accept=".txt" />
+          <label for="fileInput" class="file-upload-label">
+            📁 Choose Text File
+          </label>
+          <div class="file-info">
+            <p>Upload a .txt file with one message per line</p>
+            <p id="fileName" style="margin-top: 0.5rem; font-weight: 600"></p>
+          </div>
+          <div class="upload-progress" id="uploadProgress">
+            <div class="progress-bar">
+              <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p
+              id="progressText"
+              style="margin-top: 0.5rem; font-weight: 600"
+            ></p>
+          </div>
+        </div>
+
         <button class="btn btn-secondary" onclick="toggleMessagePool()">
           Toggle Message Pool
         </button>
@@ -274,12 +388,142 @@
       let messages = [];
       let editingId = null;
 
+      // File upload functionality
+      const fileInput = document.getElementById("fileInput");
+      const fileUploadSection = document.getElementById("fileUploadSection");
+      const fileName = document.getElementById("fileName");
+      const uploadProgress = document.getElementById("uploadProgress");
+      const progressFill = document.getElementById("progressFill");
+      const progressText = document.getElementById("progressText");
+
+      fileInput.addEventListener("change", handleFileSelect);
+
+      // Drag and drop functionality
+      fileUploadSection.addEventListener("dragover", handleDragOver);
+      fileUploadSection.addEventListener("drop", handleFileDrop);
+      fileUploadSection.addEventListener("dragleave", handleDragLeave);
+
+      function handleDragOver(e) {
+        e.preventDefault();
+        fileUploadSection.classList.add("dragover");
+      }
+
+      function handleDragLeave(e) {
+        e.preventDefault();
+        if (!fileUploadSection.contains(e.relatedTarget)) {
+          fileUploadSection.classList.remove("dragover");
+        }
+      }
+
+      function handleFileDrop(e) {
+        e.preventDefault();
+        fileUploadSection.classList.remove("dragover");
+
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          processFile(files[0]);
+        }
+      }
+
+      function handleFileSelect(e) {
+        const file = e.target.files[0];
+        if (file) {
+          processFile(file);
+        }
+      }
+
+      function processFile(file) {
+        if (!file.name.toLowerCase().endsWith(".txt")) {
+          showNotification("Please select a .txt file", "error");
+          return;
+        }
+
+        fileName.textContent = `Selected: ${file.name}`;
+        uploadFile(file);
+      }
+
+      async function uploadFile(file) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+          showProgress(0, "Uploading...");
+
+          const response = await fetch("/api/messages/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            showProgress(100, "Upload complete!");
+            showNotification(
+              `Successfully added ${result.messages_added} messages!`,
+              "success",
+            );
+
+            // Reset file input
+            fileInput.value = "";
+            fileName.textContent = "";
+
+            // Hide progress after a delay
+            setTimeout(() => {
+              uploadProgress.style.display = "none";
+            }, 2000);
+
+            // Reload messages if pool is visible
+            const pool = document.getElementById("messagePool");
+            if (!pool.classList.contains("hidden")) {
+              await loadMessages();
+            }
+          } else {
+            throw new Error("Upload failed");
+          }
+        } catch (error) {
+          console.error("Error uploading file:", error);
+          showNotification("Failed to upload file", "error");
+          uploadProgress.style.display = "none";
+        }
+      }
+
+      function showProgress(percentage, text) {
+        uploadProgress.style.display = "block";
+        progressFill.style.width = percentage + "%";
+        progressText.textContent = text;
+      }
+
+      function showNotification(message, type) {
+        // Remove any existing notifications
+        const existingNotification = document.querySelector(".notification");
+        if (existingNotification) {
+          existingNotification.remove();
+        }
+
+        const notification = document.createElement("div");
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        // Show notification
+        setTimeout(() => {
+          notification.classList.add("show");
+        }, 100);
+
+        // Hide notification after 3 seconds
+        setTimeout(() => {
+          notification.classList.remove("show");
+          setTimeout(() => {
+            notification.remove();
+          }, 300);
+        }, 3000);
+      }
+
       async function submitMessage() {
         const input = document.getElementById("messageInput");
         const text = input.value.trim();
 
         if (!text) {
-          alert("Please enter a message");
+          showNotification("Please enter a message", "error");
           return;
         }
 
@@ -294,13 +538,14 @@
 
           if (response.ok) {
             input.value = "";
+            showNotification("Message added successfully!", "success");
             await loadMessages();
           } else {
-            alert("Failed to submit message");
+            showNotification("Failed to submit message", "error");
           }
         } catch (error) {
           console.error("Error:", error);
-          alert("Network error");
+          showNotification("Network error", "error");
         }
       }
 
@@ -392,7 +637,7 @@
         const text = input.value.trim();
 
         if (!text) {
-          alert("Message cannot be empty");
+          showNotification("Message cannot be empty", "error");
           return;
         }
 
@@ -407,13 +652,14 @@
 
           if (response.ok) {
             cancelEdit(id);
+            showNotification("Message updated successfully!", "success");
             await loadMessages();
           } else {
-            alert("Failed to update message");
+            showNotification("Failed to update message", "error");
           }
         } catch (error) {
           console.error("Error:", error);
-          alert("Network error");
+          showNotification("Network error", "error");
         }
       }
 
@@ -428,13 +674,14 @@
           });
 
           if (response.ok) {
+            showNotification("Message deleted successfully!", "success");
             await loadMessages();
           } else {
-            alert("Failed to delete message");
+            showNotification("Failed to delete message", "error");
           }
         } catch (error) {
           console.error("Error:", error);
-          alert("Network error");
+          showNotification("Network error", "error");
         }
       }
 

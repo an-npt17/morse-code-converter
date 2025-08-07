@@ -4,6 +4,7 @@ mod serial_send;
 
 use chrono::{DateTime, Utc};
 use clokwerk::{Scheduler, TimeUnits};
+use futures_util::TryStreamExt;
 use message_transformer::{convert_dash_message, convert_dot_message, convert_space_message};
 use morse_converter::MorseConverter;
 use parking_lot::RwLock;
@@ -12,11 +13,14 @@ use rand::rng;
 use serde::{Deserialize, Serialize};
 use serial_send::SerialSender;
 use std::collections::HashMap;
+use std::io::Read;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use uuid::Uuid;
+use warp::Buf;
 use warp::Filter;
+use warp::multipart::FormData;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Message {
@@ -36,6 +40,13 @@ struct CreateMessageRequest {
 #[derive(Debug, Deserialize)]
 struct UpdateMessageRequest {
     text: String,
+}
+
+#[derive(Debug, Serialize)]
+struct BulkUploadResponse {
+    success: bool,
+    messages_added: usize,
+    messages: Vec<Message>,
 }
 
 type TempoStore = Arc<RwLock<u64>>;
@@ -96,6 +107,16 @@ async fn main() {
         .and(with_morse_converter(morse_clone.clone()))
         .and_then(create_new_message);
 
+    let upload_messages = api
+        .and(warp::path("messages"))
+        .and(warp::path("upload"))
+        .and(warp::path::end())
+        .and(warp::post())
+        .and(warp::multipart::form().max_length(1024 * 1024)) // 1MB max
+        .and(with_store(messages_store.clone()))
+        .and(with_morse_converter(morse_clone.clone()))
+        .and_then(upload_messages_from_file);
+
     let update_message = api
         .and(warp::path("messages"))
         .and(warp::path::param::<String>())
@@ -125,6 +146,7 @@ async fn main() {
         .or(static_files)
         .or(get_messages)
         .or(create_message)
+        .or(upload_messages)
         .or(update_message)
         .or(delete_message)
         .or(get_tempo)
@@ -182,6 +204,65 @@ async fn create_new_message(
 
     store.write().insert(id, message.clone());
     Ok(warp::reply::json(&message))
+}
+
+async fn upload_messages_from_file(
+    mut form: FormData,
+    store: MessageStore,
+    morse_converter: Arc<MorseConverter>,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    let mut file_content = String::new();
+    let mut file_found = false;
+
+    while let Ok(Some(part)) = form.try_next().await {
+        if part.name() == "file" {
+            file_found = true;
+            let mut bytes = Vec::new();
+
+            let mut stream = part.stream();
+            while let Ok(Some(chunk)) = stream.try_next().await {
+                chunk.reader().read_to_end(&mut bytes).unwrap();
+            }
+
+            file_content = String::from_utf8(bytes).map_err(|_| warp::reject::reject())?;
+            break;
+        }
+    }
+
+    if !file_found {
+        return Err(warp::reject::reject());
+    }
+
+    let mut messages_added = Vec::new();
+    let lines: Vec<&str> = file_content.lines().collect();
+
+    for line in lines {
+        let trimmed_line = line.trim();
+        if !trimmed_line.is_empty() {
+            let id = Uuid::new_v4().to_string();
+            let morse_code = morse_converter.morse_converter(trimmed_line);
+
+            let message = Message {
+                id: id.clone(),
+                text: trimmed_line.to_string(),
+                morse_code,
+                created_at: Utc::now(),
+                last_sent: None,
+                send_count: 0,
+            };
+
+            store.write().insert(id, message.clone());
+            messages_added.push(message);
+        }
+    }
+
+    let response = BulkUploadResponse {
+        success: true,
+        messages_added: messages_added.len(),
+        messages: messages_added,
+    };
+
+    Ok(warp::reply::json(&response))
 }
 
 async fn update_existing_message(
