@@ -13,7 +13,9 @@ use rand::rng;
 use serde::{Deserialize, Serialize};
 use serial_send::SerialSender;
 use std::collections::HashMap;
-use std::io::Read;
+use std::fs;
+use std::io::{Read, Write};
+use std::path::Path;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
@@ -50,20 +52,95 @@ struct BulkUploadResponse {
 }
 
 type TempoStore = Arc<RwLock<u64>>;
-
 type MessageStore = Arc<RwLock<HashMap<String, Message>>>;
+
+const MESSAGES_FILE_PATH: &str = "messages.json";
 
 fn generate_random_tempo() -> u64 {
     rng().random_range(100..=1000)
 }
 
+// Load messages from file on startup
+fn load_messages_from_file(file_path: &str) -> HashMap<String, Message> {
+    if !Path::new(file_path).exists() {
+        println!(
+            "Messages file {} not found, starting with empty message store",
+            file_path
+        );
+        return HashMap::new();
+    }
+
+    match fs::read_to_string(file_path) {
+        Ok(content) => {
+            if content.trim().is_empty() {
+                println!(
+                    "Messages file {} is empty, starting with empty message store",
+                    file_path
+                );
+                return HashMap::new();
+            }
+
+            match serde_json::from_str::<HashMap<String, Message>>(&content) {
+                Ok(messages) => {
+                    println!("Loaded {} messages from {}", messages.len(), file_path);
+                    messages
+                }
+                Err(e) => {
+                    eprintln!("Failed to parse messages from {}: {}", file_path, e);
+                    println!("Starting with empty message store");
+                    HashMap::new()
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("Failed to read messages file {}: {}", file_path, e);
+            println!("Starting with empty message store");
+            HashMap::new()
+        }
+    }
+}
+
+// Save messages to file
+fn save_messages_to_file(messages: &HashMap<String, Message>, file_path: &str) {
+    match serde_json::to_string_pretty(messages) {
+        Ok(json_content) => match fs::write(file_path, json_content) {
+            Ok(_) => println!("Messages saved to {}", file_path),
+            Err(e) => eprintln!("Failed to write messages to {}: {}", file_path, e),
+        },
+        Err(e) => eprintln!("Failed to serialize messages: {}", e),
+    }
+}
+
+// Auto-save messages periodically
+fn start_auto_save_scheduler(message_store: MessageStore) {
+    thread::spawn(move || {
+        let mut scheduler = Scheduler::new();
+
+        scheduler.every(30.seconds()).run(move || {
+            let messages = message_store.read();
+            save_messages_to_file(&messages, MESSAGES_FILE_PATH);
+        });
+
+        loop {
+            scheduler.run_pending();
+            thread::sleep(Duration::from_millis(5000));
+        }
+    });
+}
+
 #[tokio::main]
 async fn main() {
-    let message_store: MessageStore = Arc::new(RwLock::new(HashMap::new()));
+    // Load existing messages from file
+    let initial_messages = load_messages_from_file(MESSAGES_FILE_PATH);
+    let message_store: MessageStore = Arc::new(RwLock::new(initial_messages));
+
     let morse_converter = Arc::new(MorseConverter {});
     let tempo_store: TempoStore = Arc::new(RwLock::new(generate_random_tempo()));
 
     println!("Initial tempo: {} ms", *tempo_store.read());
+
+    // Start auto-save scheduler
+    start_auto_save_scheduler(message_store.clone());
 
     let store_clone = message_store.clone();
     let converter_clone = morse_converter.clone();
@@ -142,6 +219,15 @@ async fn main() {
         .and(with_tempo_store(tempo_store.clone()))
         .and_then(get_current_tempo);
 
+    // Add manual save endpoint
+    let save_messages = api
+        .and(warp::path("messages"))
+        .and(warp::path("save"))
+        .and(warp::path::end())
+        .and(warp::post())
+        .and(with_store(messages_store.clone()))
+        .and_then(save_messages_manually);
+
     let routes = index
         .or(static_files)
         .or(get_messages)
@@ -150,7 +236,18 @@ async fn main() {
         .or(update_message)
         .or(delete_message)
         .or(get_tempo)
+        .or(save_messages)
         .with(cors);
+
+    // Save messages before shutting down (register signal handler)
+    let shutdown_store = message_store.clone();
+    ctrlc::set_handler(move || {
+        println!("Received Ctrl+C, saving messages before shutdown...");
+        let messages = shutdown_store.read();
+        save_messages_to_file(&messages, MESSAGES_FILE_PATH);
+        std::process::exit(0);
+    })
+    .expect("Error setting Ctrl-C handler");
 
     println!("Morse Code Web API running on http://localhost:3030");
     warp::serve(routes).run(([0, 0, 0, 0], 3030)).await;
@@ -182,6 +279,18 @@ async fn get_all_messages(store: MessageStore) -> Result<impl warp::Reply, warp:
 async fn get_current_tempo(tempo_store: TempoStore) -> Result<impl warp::Reply, warp::Rejection> {
     let tempo = *tempo_store.read();
     let response = serde_json::json!({ "tempo_ms": tempo });
+    Ok(warp::reply::json(&response))
+}
+
+async fn save_messages_manually(store: MessageStore) -> Result<impl warp::Reply, warp::Rejection> {
+    let messages = store.read();
+    save_messages_to_file(&messages, MESSAGES_FILE_PATH);
+
+    let response = serde_json::json!({
+        "success": true,
+        "message": "Messages saved successfully",
+        "count": messages.len()
+    });
     Ok(warp::reply::json(&response))
 }
 

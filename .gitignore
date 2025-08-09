@@ -27,3 +27,5 @@ target
 
 # Nix build
 result
+
+messages.json
