@@ -400,22 +400,13 @@ fn send_morse_to_serial(morse_code: &str, tempo_ms: u64) {
             }
             '-' => {
                 let dash_message = convert_dash_message();
-                let space_message = convert_space_message();
                 println!("Sending: {dash_message}");
                 match serial_sender.send_raw(dash_message.as_bytes()) {
                     Ok(_) => println!("Successfully sent dash via serial!"),
                     Err(e) => eprintln!("Failed to send dash via serial: {e}"),
                 }
                 thread::sleep(Duration::from_millis(tempo_ms));
-                match serial_sender.send_raw(space_message.as_bytes()) {
-                    Ok(_) => println!("Successfully sent dash via serial!"),
-                    Err(e) => eprintln!("Failed to send dash via serial: {e}"),
-                }
                 thread::sleep(Duration::from_millis(tempo_ms));
-                match serial_sender.send_raw(space_message.as_bytes()) {
-                    Ok(_) => println!("Successfully sent dash via serial!"),
-                    Err(e) => eprintln!("Failed to send dash via serial: {e}"),
-                }
             }
             ' ' => {
                 let space_message = convert_space_message();
@@ -424,6 +415,8 @@ fn send_morse_to_serial(morse_code: &str, tempo_ms: u64) {
                     Ok(_) => println!("Successfully sent space via serial!"),
                     Err(e) => eprintln!("Failed to send space via serial: {e}"),
                 }
+                thread::sleep(Duration::from_millis(tempo_ms));
+                thread::sleep(Duration::from_millis(tempo_ms));
             }
             _ => {
                 continue;
