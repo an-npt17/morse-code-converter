@@ -15,14 +15,29 @@ pub fn convert_dot_message() -> String {
             selected.push('0')
         }
     }
-    if selected.iter().skip(1).all(|&c| c == '0') {
+    if selected[1..21].iter().skip(1).all(|&c| c == '0') {
         let idx = rng.random_range(1..13);
         let dist = WeightedIndex::new(weights).unwrap();
         let choice = choices[dist.sample(&mut rng)];
         selected[idx] = choice;
     }
-    for _rest in 1..=8 {
+    for _string in 1..=8 {
         selected.push('0')
+    }
+    for _lamp in 1..5 {
+        if rng.random_bool(0.1) {
+            let dist = WeightedIndex::new(weights).unwrap();
+            let choice = choices[dist.sample(&mut rng)];
+            selected.push(choice)
+        } else {
+            selected.push('0')
+        }
+    }
+    if selected[21..25].iter().skip(1).all(|&c| c == '0') {
+        let idx = rng.random_range(21..25);
+        let dist = WeightedIndex::new(weights).unwrap();
+        let choice = choices[dist.sample(&mut rng)];
+        selected[idx] = choice;
     }
     selected.push('>');
     selected.push('\n');
@@ -47,11 +62,28 @@ pub fn convert_dash_message() -> String {
             selected.push('0')
         }
     }
-    if selected.iter().skip(1).all(|&c| c == '0') {
+    for _lamp in 1..5 {
+        if rng.random_bool(0.1) {
+            let dist = WeightedIndex::new(weights).unwrap();
+            let choice = choices[dist.sample(&mut rng)];
+            if (choice == '1') {
+                selected.push('2')
+            }
+        } else {
+            selected.push('0')
+        }
+    }
+    if selected[1..21].iter().skip(1).all(|&c| c == '0') {
         let idx = rng.random_range(13..21);
         let dist = WeightedIndex::new(weights).unwrap();
         let choice = choices[dist.sample(&mut rng)];
         selected[idx] = choice;
+    }
+    if selected[21..25].iter().skip(1).all(|&c| c == '0') {
+        let idx = rng.random_range(21..25);
+        let dist = WeightedIndex::new(weights).unwrap();
+        let choice = choices[dist.sample(&mut rng)];
+        selected[idx] = '2';
     }
     selected.push('>');
     selected.push('\n');
@@ -60,7 +92,7 @@ pub fn convert_dash_message() -> String {
 pub fn convert_space_message() -> String {
     let mut selected = Vec::new();
     selected.push('<');
-    for _any in 1..=20 {
+    for _any in 1..=24 {
         selected.push('0');
     }
     selected.push('>');
