@@ -15,29 +15,25 @@ pub fn convert_dot_message() -> String {
             selected.push('0')
         }
     }
-    if selected[1..21].iter().skip(1).all(|&c| c == '0') {
-        let idx = rng.random_range(1..13);
-        let dist = WeightedIndex::new(weights).unwrap();
-        let choice = choices[dist.sample(&mut rng)];
-        selected[idx] = choice;
-    }
     for _string in 1..=8 {
         selected.push('0')
     }
     for _lamp in 1..5 {
         if rng.random_bool(0.1) {
-            let dist = WeightedIndex::new(weights).unwrap();
-            let choice = choices[dist.sample(&mut rng)];
-            selected.push(choice)
+            selected.push('1')
         } else {
             selected.push('0')
         }
     }
-    if selected[21..25].iter().skip(1).all(|&c| c == '0') {
-        let idx = rng.random_range(21..25);
+    if selected[1..21].to_vec().iter().all(|&c| c == '0') {
+        let idx = rng.random_range(1..13);
         let dist = WeightedIndex::new(weights).unwrap();
         let choice = choices[dist.sample(&mut rng)];
         selected[idx] = choice;
+    }
+    if selected[21..25].to_vec().iter().all(|&c| c == '0') {
+        let idx = rng.random_range(21..25);
+        selected[idx] = '1';
     }
     selected.push('>');
     selected.push('\n');
@@ -64,25 +60,19 @@ pub fn convert_dash_message() -> String {
     }
     for _lamp in 1..5 {
         if rng.random_bool(0.1) {
-            let dist = WeightedIndex::new(weights).unwrap();
-            let choice = choices[dist.sample(&mut rng)];
-            if (choice == '1') {
-                selected.push('2')
-            }
+            selected.push('2')
         } else {
             selected.push('0')
         }
     }
-    if selected[1..21].iter().skip(1).all(|&c| c == '0') {
+    if selected[1..21].iter().all(|&c| c == '0') {
         let idx = rng.random_range(13..21);
         let dist = WeightedIndex::new(weights).unwrap();
         let choice = choices[dist.sample(&mut rng)];
         selected[idx] = choice;
     }
-    if selected[21..25].iter().skip(1).all(|&c| c == '0') {
+    if selected[21..25].iter().all(|&c| c == '0') {
         let idx = rng.random_range(21..25);
-        let dist = WeightedIndex::new(weights).unwrap();
-        let choice = choices[dist.sample(&mut rng)];
         selected[idx] = '2';
     }
     selected.push('>');
