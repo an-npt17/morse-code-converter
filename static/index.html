@@ -84,6 +84,9 @@
         transition: all 0.3s ease;
         outline: none;
         letter-spacing: -0.01em;
+        resize: vertical;
+        min-height: 60px;
+        max-height: 200px;
       }
       #messageInput:focus {
         border-color: #667eea;
@@ -176,6 +179,7 @@
         font-family: "Inter", "Noto Sans JP", sans-serif;
         color: #2d3748;
         letter-spacing: -0.01em;
+        white-space: pre-wrap;
       }
       .message-actions {
         display: flex;
@@ -194,6 +198,7 @@
         padding: 0.75rem 1rem;
         border-radius: 8px;
         border-left: 4px solid #667eea;
+        white-space: pre-wrap;
       }
       .message-meta {
         font-size: 0.8rem;
@@ -212,7 +217,7 @@
         gap: 1rem;
         align-items: center;
       }
-      .edit-form input {
+      .edit-form textarea {
         flex: 1;
         padding: 0.75rem 1rem;
         border: 2px solid #e2e8f0;
@@ -220,8 +225,11 @@
         font-size: 0.95rem;
         font-family: "Inter", "Noto Sans JP", sans-serif;
         font-weight: 400;
+        resize: vertical;
+        min-height: 80px;
+        max-height: 150px;
       }
-      .edit-form input:focus {
+      .edit-form textarea:focus {
         border-color: #667eea;
         outline: none;
       }
@@ -276,7 +284,6 @@
         animation: pulse 1s infinite;
       }
 
-      /* Enhanced typography for empty state */
       .empty-state {
         text-align: center;
         color: #a0aec0;
@@ -310,7 +317,6 @@
       let messages = [];
       let editingId = null;
 
-      // Japanese date formatting function
       function formatJapaneseDateTime(dateString) {
         const date = new Date(dateString);
         const year = date.getFullYear();
@@ -331,11 +337,9 @@
         notification.className = `notification ${type}`;
         notification.textContent = message;
         document.body.appendChild(notification);
-        // Show notification
         setTimeout(() => {
           notification.classList.add("show");
         }, 100);
-        // Hide notification after 3 seconds
         setTimeout(() => {
           notification.classList.remove("show");
           setTimeout(() => {
@@ -414,7 +418,7 @@
                         <span>送信回数: ${message.send_count}回 ${message.last_sent ? "(最終送信: " + formatJapaneseDateTime(message.last_sent) + ")" : "(未送信)"}</span>
                     </div>
                     <div class="edit-form" id="edit-${message.id}">
-                        <input type="text" value="${message.text}" id="editInput-${message.id}" />
+                        <textarea id="editInput-${message.id}">${message.text}</textarea>
                         <button class="btn btn-primary" onclick="saveEdit('${message.id}')">保存</button>
                         <button class="btn btn-secondary" onclick="cancelEdit('${message.id}')">キャンセル</button>
                     </div>
@@ -430,9 +434,9 @@
         editingId = id;
         const editForm = document.getElementById(`edit-${id}`);
         editForm.classList.add("active");
-        const input = document.getElementById(`editInput-${id}`);
-        input.focus();
-        input.select();
+        const textarea = document.getElementById(`editInput-${id}`);
+        textarea.focus();
+        textarea.select();
       }
 
       function cancelEdit(id) {
@@ -442,8 +446,8 @@
       }
 
       async function saveEdit(id) {
-        const input = document.getElementById(`editInput-${id}`);
-        const text = input.value.trim();
+        const textarea = document.getElementById(`editInput-${id}`);
+        const text = textarea.value.trim();
         if (!text) {
           showNotification("メッセージは空にできません", "error");
           return;
@@ -489,17 +493,8 @@
         }
       }
 
-      document
-        .getElementById("messageInput")
-        .addEventListener("keypress", function (e) {
-          if (e.key === "Enter") {
-            submitMessage();
-          }
-        });
-
       document.addEventListener("DOMContentLoaded", function () {
         loadMessages();
-        // Auto-refresh messages every 30 seconds
         setInterval(() => {
           loadMessages();
         }, 30000);
