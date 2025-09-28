@@ -335,7 +335,7 @@ fn start_message_scheduler(
     scheduler.every(10.seconds()).run(move || {
         // send a message each 10 seconds
         send_random_message(&store, &morse_converter, &tempo_store);
-        *tempo_store.write() = new_tempo; // properly write new tempo
+        let mut new_tempo = *tempo_store.write(); // properly write new tempo
         println!("New tempo: {} ms", new_tempo);
     });
 
