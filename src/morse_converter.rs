@@ -5,11 +5,11 @@ pub struct MorseConverter {}
 
 impl MorseConverter {
     pub fn morse_converter(&self, text: &str) -> String {
-        let mut katakana_text = String::with_capacity(text.len());
+        converted_text = text.replace("\n", "    "); // line breaks become 4 spaces, which means we will sleep for 4 `beats` between each line break
+        let mut katakana_text = String::with_capacity(converted_text.len());
 
-        text = text.replace("\n", "    "); // line breaks become 4 spaces, which means we will sleep for 4 `beats` between each line break
-        if !text.chars().all(charset::is_kana) {
-            for c in text.chars() {
+        if !converted_text.chars().all(charset::is_kana) {
+            for c in converted_text.chars() {
                 if charset::is_kanji(c) {
                     katakana_text.push(converter::convert_hiragana_to_katakana(c));
                 } else {
@@ -17,7 +17,7 @@ impl MorseConverter {
                 }
             }
         } else {
-            for c in text.chars() {
+            for c in converted_text.chars() {
                 katakana_text.push(c);
             }
         }
