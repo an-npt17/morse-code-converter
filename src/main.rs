@@ -142,11 +142,6 @@ async fn main() {
         start_message_scheduler(store_clone, converter_clone, tempo_clone);
     });
 
-    let tempo_scheduler_clone = tempo_store.clone();
-    thread::spawn(move || {
-        start_tempo_scheduler(tempo_scheduler_clone);
-    });
-
     let cors = warp::cors()
         .allow_any_origin()
         .allow_headers(vec!["content-type"])
@@ -337,28 +332,16 @@ fn start_message_scheduler(
 ) {
     let mut scheduler = Scheduler::new();
 
-    scheduler.every(20.seconds()).run(move || {
+    scheduler.every(10.seconds()).run(move || {
+        // send a message each 10 seconds
         send_random_message(&store, &morse_converter, &tempo_store);
+        tempo_store = generate_random_tempo();
+        println!("New tempo: {tempo_store}")
     });
 
     loop {
         scheduler.run_pending();
         thread::sleep(Duration::from_millis(1000));
-    }
-}
-
-fn start_tempo_scheduler(tempo_store: TempoStore) {
-    let mut scheduler = Scheduler::new();
-
-    scheduler.every(3.minutes()).run(move || {
-        let new_tempo = generate_random_tempo();
-        *tempo_store.write() = new_tempo;
-        println!("Tempo changed to: {new_tempo} ms");
-    });
-
-    loop {
-        scheduler.run_pending();
-        thread::sleep(Duration::from_millis(5000)); // Check every 5 seconds
     }
 }
 
@@ -412,50 +395,46 @@ fn send_random_message(
         message.send_count += 1;
     }
 
-    let post_message_delay = rng().random_range(10000..=20000);
+    let post_message_delay = 10000;
     println!("Sleeping {post_message_delay} ms after message completion");
     thread::sleep(Duration::from_millis(post_message_delay));
 }
 
 fn send_morse_to_serial(morse_code: &str, tempo_ms: u64) {
-    let mut serial_sender = SerialSender::new("/dev/serial0", 9600).unwrap();
+    // let mut serial_sender = SerialSender::new("/dev/serial0", 9600).unwrap();
 
     for char in morse_code.chars() {
         match char {
             '.' => {
                 let dot_message = convert_dot_message();
                 println!("Sending: {dot_message}");
-                match serial_sender.send_raw(dot_message.as_bytes()) {
-                    Ok(_) => println!("Successfully sent dot via serial!"),
-                    Err(e) => eprintln!("Failed to send dot via serial: {e}"),
-                }
+                // match serial_sender.send_raw(dot_message.as_bytes()) {
+                //     Ok(_) => println!("Successfully sent dot via serial!"),
+                //     Err(e) => eprintln!("Failed to send dot via serial: {e}"),
+                // }
+                thread::sleep(Duration::from_millis(tempo_ms)); // Duration between each dot message is 1 `beat`
             }
             '-' => {
                 let dash_message = convert_dash_message();
                 println!("Sending: {dash_message}");
-                match serial_sender.send_raw(dash_message.as_bytes()) {
-                    Ok(_) => println!("Successfully sent dash via serial!"),
-                    Err(e) => eprintln!("Failed to send dash via serial: {e}"),
-                }
-                thread::sleep(Duration::from_millis(tempo_ms));
-                thread::sleep(Duration::from_millis(tempo_ms));
+                // match serial_sender.send_raw(dash_message.as_bytes()) {
+                //     Ok(_) => println!("Successfully sent dash via serial!"),
+                //     Err(e) => eprintln!("Failed to send dash via serial: {e}"),
+                // }
+                thread::sleep(Duration::from_millis(tempo_ms * 4)); // 4 `beats` duration
             }
             ' ' => {
                 let space_message = convert_space_message();
                 println!("Sending: {space_message}");
-                match serial_sender.send_raw(space_message.as_bytes()) {
-                    Ok(_) => println!("Successfully sent space via serial!"),
-                    Err(e) => eprintln!("Failed to send space via serial: {e}"),
-                }
-                thread::sleep(Duration::from_millis(tempo_ms));
-                thread::sleep(Duration::from_millis(tempo_ms));
+                // match serial_sender.send_raw(space_message.as_bytes()) {
+                //     Ok(_) => println!("Successfully sent space via serial!"),
+                //     Err(e) => eprintln!("Failed to send space via serial: {e}"),
+                // }
+                thread::sleep(Duration::from_millis(tempo_ms * 3)); // 3 `beats`
             }
             _ => {
                 continue;
             }
         }
-
-        println!("Waiting {tempo_ms} ms (tempo)");
-        thread::sleep(Duration::from_millis(tempo_ms));
     }
 }

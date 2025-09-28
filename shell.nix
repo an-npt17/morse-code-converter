@@ -10,6 +10,7 @@ pkgs.mkShell {
     clippy
     rust-analyzer
     pkg-config
+    libudev-zero
     udev
   ];
 

@@ -7,6 +7,7 @@ impl MorseConverter {
     pub fn morse_converter(&self, text: &str) -> String {
         let mut katakana_text = String::with_capacity(text.len());
 
+        text = text.replace("\n", "    "); // line breaks become 4 spaces, which means we will sleep for 4 `beats` between each line break
         if !text.chars().all(charset::is_kana) {
             for c in text.chars() {
                 if charset::is_kanji(c) {
