@@ -50,7 +50,7 @@ type MessageStore = Arc<RwLock<HashMap<String, Message>>>;
 const MESSAGES_FILE_PATH: &str = "messages.json";
 
 fn generate_random_tempo() -> u64 {
-    rng().random_range(100..=1000)
+    rng().random_range(400..=1000)
 }
 
 // Load messages from file on startup
@@ -335,8 +335,8 @@ fn start_message_scheduler(
     scheduler.every(10.seconds()).run(move || {
         // send a message each 10 seconds
         send_random_message(&store, &morse_converter, &tempo_store);
-        tempo_store = generate_random_tempo();
-        println!("New tempo: {tempo_store}")
+        *tempo_store.write() = new_tempo; // properly write new tempo
+        println!("New tempo: {} ms", new_tempo);
     });
 
     loop {
