@@ -1,0 +1,12 @@
+version: "3.9"
+
+services:
+  builder:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      platforms:
+        - linux/arm64
+    volumes:
+      - ./out:/out
+    command: cargo build --release && bash -c "cp target/release/morse-code-converter /out/"
