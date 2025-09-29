@@ -50,7 +50,9 @@ type MessageStore = Arc<RwLock<HashMap<String, Message>>>;
 const MESSAGES_FILE_PATH: &str = "messages.json";
 
 fn generate_random_tempo() -> u64 {
-    rng().random_range(400..=1000)
+    let choices = [400, 700, 1000];
+    let mut rng = thread_rng();
+    *choices.choose(&mut rng).unwrap()
 }
 
 // Load messages from file on startup
