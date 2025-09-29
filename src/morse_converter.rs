@@ -11,6 +11,8 @@ impl MorseConverter {
             for c in text.chars() {
                 if charset::is_kanji(c) {
                     katakana_text.push(converter::convert_hiragana_to_katakana(c));
+                } else if c.is_whitespace() {
+                    katakana_text.push(' ');
                 } else {
                     katakana_text.push(c);
                 }
@@ -22,6 +24,7 @@ impl MorseConverter {
         }
 
         println!("Original text: {text}, Converted text: {katakana_text}");
-        encode_string(&katakana_text.to_string()) // Encode all of them
+        let encoded_string = encode_string(&katakana_text.to_string()); // Encode all of them
+        encoded_string.replace("/", " ") // encode string denotes / as space
     }
 }

@@ -4,7 +4,6 @@ mod serial_send;
 
 use chrono::{DateTime, Utc};
 use clokwerk::{Scheduler, TimeUnits};
-use futures_util::TryStreamExt;
 use message_transformer::{convert_dash_message, convert_dot_message, convert_space_message};
 use morse_converter::MorseConverter;
 use parking_lot::RwLock;
@@ -14,15 +13,12 @@ use serde::{Deserialize, Serialize};
 use serial_send::SerialSender;
 use std::collections::HashMap;
 use std::fs;
-use std::io::{Read, Write};
 use std::path::Path;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use uuid::Uuid;
-use warp::Buf;
 use warp::Filter;
-use warp::multipart::FormData;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Message {
@@ -339,27 +335,24 @@ fn start_message_scheduler(
     morse_converter: Arc<MorseConverter>,
     tempo_store: TempoStore,
 ) {
-    let mut scheduler = Scheduler::new();
-
-    scheduler.every(10.seconds()).run(move || {
-        // send a message each 10 seconds
+    loop {
+        // Send a message
         send_random_message(&store, &morse_converter, &tempo_store);
 
         // Change tempo after each message sent
         let new_tempo = generate_random_tempo();
         *tempo_store.write() = new_tempo;
         println!("New tempo: {} ms", new_tempo);
-    });
 
-    loop {
-        scheduler.run_pending();
-        thread::sleep(Duration::from_millis(1000));
+        // Sleep for 5 seconds before next message
+        println!("Waiting 5 seconds before next message...");
+        thread::sleep(Duration::from_secs(5));
     }
 }
 
 fn send_random_message(
     store: &MessageStore,
-    _morse_converter: &Arc<MorseConverter>,
+    morse_converter: &Arc<MorseConverter>,
     tempo_store: &TempoStore,
 ) {
     let selected_message_id = {
@@ -368,13 +361,11 @@ fn send_random_message(
             println!("No messages in pool to send");
             return;
         }
-
         let unsent_message_ids: Vec<String> = messages
             .values()
             .filter(|m| m.last_sent.is_none())
             .map(|m| m.id.clone())
             .collect();
-
         if !unsent_message_ids.is_empty() {
             unsent_message_ids.choose(&mut rng()).unwrap().clone()
         } else {
@@ -394,7 +385,6 @@ fn send_random_message(
     };
 
     let current_tempo = *tempo_store.read();
-
     println!("Sending message: {message_text}");
     println!("Morse code: {morse_code}");
     println!("Current tempo: {current_tempo} ms");
@@ -406,10 +396,6 @@ fn send_random_message(
         message.last_sent = Some(Utc::now());
         message.send_count += 1;
     }
-
-    let post_message_delay = 10000;
-    println!("Sleeping {post_message_delay} ms after message completion");
-    thread::sleep(Duration::from_millis(post_message_delay));
 }
 
 fn send_morse_to_serial(morse_code: &str, tempo_ms: u64) {
@@ -433,7 +419,7 @@ fn send_morse_to_serial(morse_code: &str, tempo_ms: u64) {
                     Ok(_) => println!("Successfully sent dash via serial!"),
                     Err(e) => eprintln!("Failed to send dash via serial: {e}"),
                 }
-                thread::sleep(Duration::from_millis(tempo_ms * 5)); // 5 `beats` duration
+                thread::sleep(Duration::from_millis(tempo_ms * 4)); // 5 `beats` duration
             }
             ' ' => {
                 let space_message = convert_space_message();
@@ -444,6 +430,7 @@ fn send_morse_to_serial(morse_code: &str, tempo_ms: u64) {
                 }
                 thread::sleep(Duration::from_millis(tempo_ms * 4)); // 4 `beats` for line breaks/spaces
             }
+            '/' => thread::sleep(Duration::from_millis(tempo_ms)), // 4 `beats` for line breaks/spaces
             _ => {
                 continue;
             }
