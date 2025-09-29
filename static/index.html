@@ -401,11 +401,9 @@
         sortedMessages.forEach((message) => {
           const messageDiv = document.createElement("div");
           messageDiv.className = "message-item";
-          messageDiv.innerHTML = `
-<div class="message-header">
+          messageDiv.innerHTML = `<div class="message-header">
 <div class="message-text">
-<span class="status-indicator ${message.last_sent ? "status-sent" : "status-unsent"}"></span>
-${message.text}
+<span class="status-indicator ${message.last_sent ? "status-sent" : "status-unsent"}"></span>${message.text}
 </div>
 <div class="message-actions">
 <button class="btn btn-edit" onclick="startEdit('${message.id}')">編集</button>
@@ -421,8 +419,7 @@ ${message.text}
 <textarea id="editInput-${message.id}">${message.text}</textarea>
 <button class="btn btn-primary" onclick="saveEdit('${message.id}')">保存</button>
 <button class="btn btn-secondary" onclick="cancelEdit('${message.id}')">キャンセル</button>
-</div>
-`.trim();
+</div>`;
           messageList.appendChild(messageDiv);
         });
       }
