@@ -25,3 +25,22 @@ impl MorseConverter {
         encode_string(&katakana_text.to_string()) // Encode all of them
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use japanese::{charset, converter};
+    use ripmors::encode_string;
+
+    #[test]
+    fn test_morse_converter_with_katakana() {
+        let converter = MorseConverter {};
+        let input = "hello\nhi"; // already Katakana
+        let output = converter.morse_converter(input);
+
+        // The result should not be empty
+        assert!(!output.is_empty(), "Morse code should not be empty");
+
+        // Ensure encode_string does something meaningful
+        assert_eq!(output, encode_string(&input.to_string()));
+    }
+}
