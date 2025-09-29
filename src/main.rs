@@ -276,9 +276,8 @@ async fn create_new_message(
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let id = Uuid::new_v4().to_string();
 
-    // Replace line breaks with 4 spaces for morse conversion only
-    let normalized_text = req.text.replace('\n', "    ").replace('\r', "");
-    let morse_code = morse_converter.morse_converter(&normalized_text);
+    // Replace line breaks with a space for morse conversion only
+    let morse_code = morse_converter.morse_converter(&req.text);
 
     let message = Message {
         id: id.clone(),
@@ -305,7 +304,7 @@ async fn update_existing_message(
         message.text = req.text.clone(); // Keep original text with line breaks for display
 
         // Replace line breaks with 4 spaces for morse conversion only
-        let normalized_text = req.text.replace('\n', "    ").replace('\r', "");
+        let normalized_text = req.text.replace('\n', " ").replace('\r', "");
         message.morse_code = morse_converter.morse_converter(&normalized_text);
 
         Ok(warp::reply::json(message))
@@ -430,7 +429,10 @@ fn send_morse_to_serial(morse_code: &str, tempo_ms: u64) {
                 }
                 thread::sleep(Duration::from_millis(tempo_ms * 4)); // 4 `beats` for line breaks/spaces
             }
-            '/' => thread::sleep(Duration::from_millis(tempo_ms)), // 4 `beats` for line breaks/spaces
+            '\n' => {
+                println!("New line character detected, sleep for 4*tempo");
+                thread::sleep(Duration::from_millis(tempo_ms * 4)); // 4 `beats` for line breaks/spaces
+            }
             _ => {
                 continue;
             }
