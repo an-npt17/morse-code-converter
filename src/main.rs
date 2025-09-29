@@ -51,7 +51,7 @@ const MESSAGES_FILE_PATH: &str = "messages.json";
 
 fn generate_random_tempo() -> u64 {
     let choices = [400, 700, 1000];
-    let mut rng = thread_rng();
+    let mut rng = rand::rng();
     *choices.choose(&mut rng).unwrap()
 }
 
@@ -423,7 +423,7 @@ fn send_morse_to_serial(morse_code: &str, tempo_ms: u64) {
                     Ok(_) => println!("Successfully sent dash via serial!"),
                     Err(e) => eprintln!("Failed to send dash via serial: {e}"),
                 }
-                thread::sleep(Duration::from_millis(tempo_ms * 4)); // 4 `beats` duration
+                thread::sleep(Duration::from_millis(tempo_ms * 5)); // 4 `beats` duration
             }
             ' ' => {
                 let space_message = convert_space_message();
