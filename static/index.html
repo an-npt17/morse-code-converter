@@ -403,24 +403,24 @@
           messageDiv.className = "message-item";
           messageDiv.innerHTML = `
 <div class="message-header">
-	<div class="message-text">
-		<span class="status-indicator ${message.last_sent ? "status-sent" : "status-unsent"}"></span>
-		${message.text}
-	</div>
-	<div class="message-actions">
-		<button class="btn btn-edit" onclick="startEdit('${message.id}')">編集</button>
-		<button class="btn btn-danger" onclick="deleteMessage('${message.id}')">削除</button>
-	</div>
+<div class="message-text">
+<span class="status-indicator ${message.last_sent ? "status-sent" : "status-unsent"}"></span>
+${message.text}
+</div>
+<div class="message-actions">
+<button class="btn btn-edit" onclick="startEdit('${message.id}')">編集</button>
+<button class="btn btn-danger" onclick="deleteMessage('${message.id}')">削除</button>
+</div>
 </div>
 <div class="message-morse">${message.morse_code}</div>
 <div class="message-meta">
-	<span>作成日時: ${formatJapaneseDateTime(message.created_at)}</span>
-	<span>送信回数: ${message.send_count}回 ${message.last_sent ? "(最終送信: " + formatJapaneseDateTime(message.last_sent) + ")" : "(未送信)"}</span>
+<span>作成日時: ${formatJapaneseDateTime(message.created_at)}</span>
+<span>送信回数: ${message.send_count}回 ${message.last_sent ? "(最終送信: " + formatJapaneseDateTime(message.last_sent) + ")" : "(未送信)"}</span>
 </div>
 <div class="edit-form" id="edit-${message.id}">
-	<textarea id="editInput-${message.id}">${message.text}</textarea>
-	<button class="btn btn-primary" onclick="saveEdit('${message.id}')">保存</button>
-	<button class="btn btn-secondary" onclick="cancelEdit('${message.id}')">キャンセル</button>
+<textarea id="editInput-${message.id}">${message.text}</textarea>
+<button class="btn btn-primary" onclick="saveEdit('${message.id}')">保存</button>
+<button class="btn btn-secondary" onclick="cancelEdit('${message.id}')">キャンセル</button>
 </div>
 `.trim();
           messageList.appendChild(messageDiv);
