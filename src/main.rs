@@ -279,7 +279,10 @@ async fn create_new_message(
     morse_converter: Arc<MorseConverter>,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let id = Uuid::new_v4().to_string();
-    let morse_code = morse_converter.morse_converter(&req.text);
+
+    // Replace line breaks with 4 spaces for morse conversion only
+    let normalized_text = req.text.replace('\n', "    ").replace('\r', "");
+    let morse_code = morse_converter.morse_converter(&normalized_text);
 
     let message = Message {
         id: id.clone(),
@@ -303,8 +306,12 @@ async fn update_existing_message(
     let mut messages = store.write();
 
     if let Some(message) = messages.get_mut(&id) {
-        message.text = req.text;
-        message.morse_code = morse_converter.morse_converter(&message.text);
+        message.text = req.text.clone(); // Keep original text with line breaks for display
+
+        // Replace line breaks with 4 spaces for morse conversion only
+        let normalized_text = req.text.replace('\n', "    ").replace('\r', "");
+        message.morse_code = morse_converter.morse_converter(&normalized_text);
+
         Ok(warp::reply::json(message))
     } else {
         Err(warp::reject::not_found())
@@ -337,7 +344,10 @@ fn start_message_scheduler(
     scheduler.every(10.seconds()).run(move || {
         // send a message each 10 seconds
         send_random_message(&store, &morse_converter, &tempo_store);
-        let mut new_tempo = *tempo_store.write(); // properly write new tempo
+
+        // Change tempo after each message sent
+        let new_tempo = generate_random_tempo();
+        *tempo_store.write() = new_tempo;
         println!("New tempo: {} ms", new_tempo);
     });
 
@@ -423,7 +433,7 @@ fn send_morse_to_serial(morse_code: &str, tempo_ms: u64) {
                     Ok(_) => println!("Successfully sent dash via serial!"),
                     Err(e) => eprintln!("Failed to send dash via serial: {e}"),
                 }
-                thread::sleep(Duration::from_millis(tempo_ms * 5)); // 4 `beats` duration
+                thread::sleep(Duration::from_millis(tempo_ms * 5)); // 5 `beats` duration
             }
             ' ' => {
                 let space_message = convert_space_message();
@@ -432,7 +442,7 @@ fn send_morse_to_serial(morse_code: &str, tempo_ms: u64) {
                     Ok(_) => println!("Successfully sent space via serial!"),
                     Err(e) => eprintln!("Failed to send space via serial: {e}"),
                 }
-                thread::sleep(Duration::from_millis(tempo_ms * 3)); // 3 `beats`
+                thread::sleep(Duration::from_millis(tempo_ms * 4)); // 4 `beats` for line breaks/spaces
             }
             _ => {
                 continue;
