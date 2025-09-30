@@ -15,10 +15,19 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::thread;
 use std::time::Duration;
 use uuid::Uuid;
 use warp::Filter;
+
+// Global counter for consecutive instrument messages
+static CONSECUTIVE_INSTRUMENT_COUNT: AtomicU32 = AtomicU32::new(0);
+
+fn send_lamp() -> bool {
+    let current_count = CONSECUTIVE_INSTRUMENT_COUNT.load(Ordering::SeqCst);
+    current_count >= 5
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Message {
@@ -343,6 +352,13 @@ fn start_message_scheduler(
         *tempo_store.write() = new_tempo;
         println!("New tempo: {} ms", new_tempo);
 
+        if send_lamp() {
+            // check and reset if the lamp message is playing
+            println!("Reset counting");
+            CONSECUTIVE_INSTRUMENT_COUNT.store(0, Ordering::SeqCst);
+        } else {
+            CONSECUTIVE_INSTRUMENT_COUNT.fetch_add(1, Ordering::SeqCst);
+        }
         // Sleep for 5 seconds before next message
         println!("Waiting 5 seconds before next message...");
         thread::sleep(Duration::from_secs(5));
