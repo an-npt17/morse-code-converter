@@ -476,7 +476,7 @@ fn start_message_scheduler(
         if !is_lamp_mode {
             CONSECUTIVE_INSTRUMENT_COUNT.fetch_add(1, Ordering::SeqCst);
         } else {
-            // Check if we've exited lamp mode after the message
+            CONSECUTIVE_INSTRUMENT_COUNT.store(0, Ordering::SeqCst);
             if !send_lamp() {
                 println!("Exited lamp mode");
             }
