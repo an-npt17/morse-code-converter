@@ -420,6 +420,9 @@ fn start_message_scheduler(
     config_store: ConfigStore,
 ) {
     loop {
+        if send_lamp() {
+            *tempo_store.write() = 400;
+        }
         send_random_message(&store, &morse_converter, &tempo_store, &config_store);
 
         let new_tempo = generate_random_tempo();
