@@ -44,7 +44,7 @@ impl Default for TransformerConfig {
             dash_choice_3_weight: 30,
             dash_choice_4_weight: 30,
 
-            lamp_probability_when_lamp_mode: 0.8,
+            lamp_probability_when_lamp_mode: 0.2,
             lamp_probability_normal: 0.1,
         }
     }
