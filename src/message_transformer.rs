@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 pub struct TransformerConfig {
     // Tempo configuration
     pub tempo_choices: Vec<u64>,
+    pub lamp_tempo_ms: u64,
 
     // Dot message configuration
     pub dot_percussion_probability: f64,
@@ -21,35 +22,30 @@ pub struct TransformerConfig {
     pub dash_choice_3_weight: u32,
     pub dash_choice_4_weight: u32,
 
-    // Single lamp probability for all lamps in dot messages
-    pub lamp_dot_probability: f64,
-
-    // Single lamp probability for all lamps in dash messages
-    pub lamp_dash_probability: f64,
+    // Lamp probabilities
+    pub lamp_probability_when_lamp_mode: f64, // Probability when send_lamp() returns true
+    pub lamp_probability_normal: f64,         // Probability when send_lamp() returns false
 }
 
 impl Default for TransformerConfig {
     fn default() -> Self {
         TransformerConfig {
-            // Tempo defaults
             tempo_choices: vec![400, 700, 1000],
+            lamp_tempo_ms: 400,
 
-            // Dot defaults
             dot_percussion_probability: 0.12,
             dot_choice_1_weight: 70,
             dot_choice_2_weight: 20,
             dot_choice_3_weight: 10,
 
-            // Dash defaults
             dash_string_probability: 0.2,
             dash_choice_1_weight: 20,
             dash_choice_2_weight: 20,
             dash_choice_3_weight: 30,
             dash_choice_4_weight: 30,
 
-            // Single lamp probabilities
-            lamp_dot_probability: 0.3,
-            lamp_dash_probability: 0.3,
+            lamp_probability_when_lamp_mode: 0.8,
+            lamp_probability_normal: 0.1,
         }
     }
 }
@@ -66,12 +62,15 @@ pub fn convert_dot_message(config: &TransformerConfig) -> String {
 
     selected.push('<');
 
-    if send_lamp() {
+    let is_lamp_mode = send_lamp();
+
+    if is_lamp_mode {
+        // Lamp mode: all instruments off
         for _instrument in 1..=20 {
             selected.push('0');
         }
     } else {
-        // Percussion instruments (positions 1-12)
+        // Normal mode: percussion instruments
         for _percussion in 1..=12 {
             if rng.random_bool(config.dot_percussion_probability) {
                 let dist = WeightedIndex::new(weights).unwrap();
@@ -95,9 +94,16 @@ pub fn convert_dot_message(config: &TransformerConfig) -> String {
             selected[idx] = choice;
         }
     }
-    // All 6 lamps use the same probability - each lamp sends '1' with lamp_dot_probability
+
+    // Lamps - use different probability based on mode
+    let lamp_prob = if is_lamp_mode {
+        config.lamp_probability_when_lamp_mode
+    } else {
+        config.lamp_probability_normal
+    };
+
     for _lamp in 1..=6 {
-        if rng.random_bool(config.lamp_dot_probability) {
+        if rng.random_bool(lamp_prob) {
             selected.push('1');
         } else {
             selected.push('0');
@@ -122,17 +128,20 @@ pub fn convert_dash_message(config: &TransformerConfig) -> String {
 
     selected.push('<');
 
-    if send_lamp() {
+    let is_lamp_mode = send_lamp();
+
+    if is_lamp_mode {
+        // Lamp mode: all instruments off
         for _instrument in 1..=20 {
             selected.push('0');
         }
     } else {
-        // Rest (positions 1-12)
+        // Normal mode: rest positions
         for _rest in 1..=12 {
             selected.push('0')
         }
 
-        // String instruments (positions 13-20)
+        // String instruments
         for _percussion in 1..=8 {
             if rng.random_bool(config.dash_string_probability) {
                 let dist = WeightedIndex::new(weights).unwrap();
@@ -151,8 +160,16 @@ pub fn convert_dash_message(config: &TransformerConfig) -> String {
             selected[idx] = choice;
         }
     }
+
+    // Lamps - use different probability based on mode
+    let lamp_prob = if is_lamp_mode {
+        config.lamp_probability_when_lamp_mode
+    } else {
+        config.lamp_probability_normal
+    };
+
     for _lamp in 1..=6 {
-        if rng.random_bool(config.lamp_dash_probability) {
+        if rng.random_bool(lamp_prob) {
             selected.push('2');
         } else {
             selected.push('0');

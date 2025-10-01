@@ -281,7 +281,7 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>⚙️ Transformer Settings</h1>
+        <h1>Transformer Settings</h1>
         <p>Configure weights and probabilities for message transformation</p>
       </div>
 
@@ -298,10 +298,10 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Tempo Choices (milliseconds)</label>
-          <div id="tempoContainer" class="weight-inputs">
-            <!-- Tempo inputs will be dynamically generated -->
-          </div>
+          <label class="form-label"
+            >Normal Mode Tempo Choices (milliseconds)</label
+          >
+          <div id="tempoContainer" class="weight-inputs"></div>
           <div style="margin-top: 15px">
             <button
               class="btn btn-secondary"
@@ -312,8 +312,24 @@
             </button>
           </div>
           <span class="form-help"
-            >Random tempo will be chosen from these values. Click + to add more
-            options.</span
+            >Random tempo will be chosen from these values during normal
+            operation.</span
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Lamp Mode Tempo (milliseconds)</label>
+          <input
+            type="number"
+            class="form-input"
+            id="lampTempo"
+            min="100"
+            max="5000"
+            step="50"
+          />
+          <span class="form-help"
+            >Fixed tempo used when in lamp mode (after 5 consecutive instrument
+            messages). Lamp mode automatically ends after 2 minutes.</span
           >
         </div>
       </div>
@@ -455,43 +471,42 @@
         <div class="form-grid">
           <div class="form-group">
             <label class="form-label"
-              >Dot Lamp Probability (All 6 lamps send '1')</label
+              >Lamp Probability (Lamp Mode Active)</label
             >
             <div class="input-group">
               <input
                 type="range"
                 class="form-input"
-                id="lampDotProb"
+                id="lampProbLampMode"
                 min="0"
                 max="1"
                 step="0.01"
               />
-              <span class="input-value" id="lampDotProbValue">--</span>
+              <span class="input-value" id="lampProbLampModeValue">--</span>
             </div>
             <span class="form-help"
-              >Single probability for all lamps to send '1' during dot
-              messages</span
+              >Probability for each lamp to activate when lamp mode is active
+              (after 5 consecutive instrument messages). Applies to all 6
+              lamps.</span
             >
           </div>
 
           <div class="form-group">
-            <label class="form-label"
-              >Dash Lamp Probability (All 6 lamps send '2')</label
-            >
+            <label class="form-label">Lamp Probability (Normal Mode)</label>
             <div class="input-group">
               <input
                 type="range"
                 class="form-input"
-                id="lampDashProb"
+                id="lampProbNormal"
                 min="0"
                 max="1"
                 step="0.01"
               />
-              <span class="input-value" id="lampDashProbValue">--</span>
+              <span class="input-value" id="lampProbNormalValue">--</span>
             </div>
             <span class="form-help"
-              >Single probability for all lamps to send '2' during dash
-              messages</span
+              >Probability for each lamp to activate during normal operation
+              (when lamp mode is not active). Applies to all 6 lamps.</span
             >
           </div>
         </div>
@@ -514,7 +529,6 @@
     <script>
       let currentConfig = {};
 
-      // Range input value display
       document
         .getElementById("dotPercussionProb")
         .addEventListener("input", function (e) {
@@ -530,22 +544,19 @@
         });
 
       document
-        .getElementById("lampDotProb")
+        .getElementById("lampProbLampMode")
         .addEventListener("input", function (e) {
-          document.getElementById("lampDotProbValue").textContent = parseFloat(
-            e.target.value,
-          ).toFixed(2);
+          document.getElementById("lampProbLampModeValue").textContent =
+            parseFloat(e.target.value).toFixed(2);
         });
 
       document
-        .getElementById("lampDashProb")
+        .getElementById("lampProbNormal")
         .addEventListener("input", function (e) {
-          document.getElementById("lampDashProbValue").textContent = parseFloat(
-            e.target.value,
-          ).toFixed(2);
+          document.getElementById("lampProbNormalValue").textContent =
+            parseFloat(e.target.value).toFixed(2);
         });
 
-      // Tempo management
       function addTempoChoice(value = 700) {
         const container = document.getElementById("tempoContainer");
         const tempoId = "tempo_" + Date.now();
@@ -616,6 +627,9 @@
             loadTempoChoices([400, 700, 1000]);
           }
 
+          document.getElementById("lampTempo").value =
+            config.lamp_tempo_ms || 400;
+
           document.getElementById("dotPercussionProb").value =
             config.dot_percussion_probability;
           document.getElementById("dotPercussionProbValue").textContent =
@@ -642,15 +656,15 @@
           document.getElementById("dashWeight4").value =
             config.dash_choice_4_weight;
 
-          document.getElementById("lampDotProb").value =
-            config.lamp_dot_probability;
-          document.getElementById("lampDotProbValue").textContent =
-            config.lamp_dot_probability.toFixed(2);
+          document.getElementById("lampProbLampMode").value =
+            config.lamp_probability_when_lamp_mode;
+          document.getElementById("lampProbLampModeValue").textContent =
+            config.lamp_probability_when_lamp_mode.toFixed(2);
 
-          document.getElementById("lampDashProb").value =
-            config.lamp_dash_probability;
-          document.getElementById("lampDashProbValue").textContent =
-            config.lamp_dash_probability.toFixed(2);
+          document.getElementById("lampProbNormal").value =
+            config.lamp_probability_normal;
+          document.getElementById("lampProbNormalValue").textContent =
+            config.lamp_probability_normal.toFixed(2);
 
           showNotification("Configuration loaded successfully!");
         } catch (error) {
@@ -662,6 +676,7 @@
       async function saveConfig() {
         const config = {
           tempo_choices: getTempoChoices(),
+          lamp_tempo_ms: parseInt(document.getElementById("lampTempo").value),
 
           dot_percussion_probability: parseFloat(
             document.getElementById("dotPercussionProb").value,
@@ -692,11 +707,11 @@
             document.getElementById("dashWeight4").value,
           ),
 
-          lamp_dot_probability: parseFloat(
-            document.getElementById("lampDotProb").value,
+          lamp_probability_when_lamp_mode: parseFloat(
+            document.getElementById("lampProbLampMode").value,
           ),
-          lamp_dash_probability: parseFloat(
-            document.getElementById("lampDashProb").value,
+          lamp_probability_normal: parseFloat(
+            document.getElementById("lampProbNormal").value,
           ),
         };
 
@@ -723,6 +738,7 @@
 
       function resetToDefaults() {
         loadTempoChoices([400, 700, 1000]);
+        document.getElementById("lampTempo").value = 400;
 
         document.getElementById("dotPercussionProb").value = 0.12;
         document.getElementById("dotPercussionProbValue").textContent = "0.12";
@@ -737,10 +753,10 @@
         document.getElementById("dashWeight3").value = 30;
         document.getElementById("dashWeight4").value = 30;
 
-        document.getElementById("lampDotProb").value = 0.3;
-        document.getElementById("lampDotProbValue").textContent = "0.30";
-        document.getElementById("lampDashProb").value = 0.3;
-        document.getElementById("lampDashProbValue").textContent = "0.30";
+        document.getElementById("lampProbLampMode").value = 0.8;
+        document.getElementById("lampProbLampModeValue").textContent = "0.80";
+        document.getElementById("lampProbNormal").value = 0.1;
+        document.getElementById("lampProbNormalValue").textContent = "0.10";
 
         showNotification("Reset to default values");
       }

@@ -17,18 +17,44 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use uuid::Uuid;
 use warp::Filter;
 
 static CONSECUTIVE_INSTRUMENT_COUNT: AtomicU32 = AtomicU32::new(0);
 static CONFIG_CHANGED: AtomicBool = AtomicBool::new(false);
+static LAMP_MODE_START_TIME: AtomicU64 = AtomicU64::new(0);
 
 fn send_lamp() -> bool {
     let current_count = CONSECUTIVE_INSTRUMENT_COUNT.load(Ordering::SeqCst);
-    current_count >= 5
+
+    if current_count >= 5 {
+        let start_time = LAMP_MODE_START_TIME.load(Ordering::SeqCst);
+
+        // If this is the first time entering lamp mode, record the start time
+        if start_time == 0 {
+            let now = Instant::now().elapsed().as_secs();
+            LAMP_MODE_START_TIME.store(now, Ordering::SeqCst);
+            return true;
+        }
+
+        // Check if 2 minutes (120 seconds) have passed
+        let now = Instant::now().elapsed().as_secs();
+        let elapsed = now.saturating_sub(start_time);
+
+        if elapsed >= 120 {
+            println!("Lamp mode timeout (2 minutes) - exiting lamp mode");
+            CONSECUTIVE_INSTRUMENT_COUNT.store(0, Ordering::SeqCst);
+            LAMP_MODE_START_TIME.store(0, Ordering::SeqCst);
+            return false;
+        }
+
+        return true;
+    }
+
+    false
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -60,7 +86,7 @@ const CONFIG_FILE_PATH: &str = "transformer_config.json";
 
 fn generate_random_tempo(tempo_choices: &[u64]) -> u64 {
     if tempo_choices.is_empty() {
-        return 700; // Default fallback
+        return 700;
     }
     let mut rng = rand::rng();
     *tempo_choices.choose(&mut rng).unwrap()
@@ -255,7 +281,6 @@ async fn main() {
         .and(with_store(messages_store.clone()))
         .and_then(save_messages_manually);
 
-    // Config endpoints
     let get_config = api
         .and(warp::path("config"))
         .and(warp::path::end())
@@ -360,7 +385,6 @@ async fn update_transformer_config(
     *config_store.write() = new_config.clone();
     save_config_to_file(&new_config, CONFIG_FILE_PATH);
 
-    // Signal that config has changed to interrupt current sending
     CONFIG_CHANGED.store(true, Ordering::SeqCst);
     println!("Config updated - current message sending will be interrupted");
 
@@ -429,25 +453,35 @@ fn start_message_scheduler(
     config_store: ConfigStore,
 ) {
     loop {
-        if send_lamp() {
-            *tempo_store.write() = 400;
+        let is_lamp_mode = send_lamp();
+
+        if is_lamp_mode {
+            let config = config_store.read();
+            *tempo_store.write() = config.lamp_tempo_ms;
+            println!(
+                "Lamp mode active - using lamp tempo: {} ms",
+                config.lamp_tempo_ms
+            );
         }
+
         send_random_message(&store, &morse_converter, &tempo_store, &config_store);
 
-        // Generate new tempo from current config's tempo_choices
         let config = config_store.read();
         let new_tempo = generate_random_tempo(&config.tempo_choices);
-        drop(config); // Release lock
+        drop(config);
 
         *tempo_store.write() = new_tempo;
         println!("New tempo: {} ms", new_tempo);
 
-        if send_lamp() {
-            println!("Reset counting");
-            CONSECUTIVE_INSTRUMENT_COUNT.store(0, Ordering::SeqCst);
-        } else {
+        if !is_lamp_mode {
             CONSECUTIVE_INSTRUMENT_COUNT.fetch_add(1, Ordering::SeqCst);
+        } else {
+            // Check if we've exited lamp mode after the message
+            if !send_lamp() {
+                println!("Exited lamp mode");
+            }
         }
+
         println!("Waiting 5 seconds before next message...");
         thread::sleep(Duration::from_secs(5));
     }
@@ -506,7 +540,6 @@ fn send_morse_to_serial(morse_code: &str, tempo_ms: u64, config_store: &ConfigSt
     let mut serial_sender = SerialSender::new("/dev/serial0", 9600).unwrap();
 
     for char in morse_code.chars() {
-        // Check if config changed before each character
         if CONFIG_CHANGED.load(Ordering::SeqCst) {
             println!("Config changed - interrupting current message");
             CONFIG_CHANGED.store(false, Ordering::SeqCst);
