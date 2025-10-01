@@ -190,10 +190,6 @@
         letter-spacing: -0.01em;
         white-space: pre-wrap;
       }
-      .message-actions {
-        display: flex;
-        gap: 0.5rem;
-      }
       .message-morse {
         font-family:
           "JetBrains Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono",
@@ -220,27 +216,46 @@
       .edit-form {
         margin-top: 1rem;
         display: none;
+        gap: 1rem;
+        align-items: flex-start;
+        flex-wrap: wrap;
       }
+
       .edit-form.active {
         display: flex;
-        gap: 1rem;
-        align-items: center;
+        flex-direction: row; /* default: side by side */
       }
+
       .edit-form textarea {
         flex: 1;
-        padding: 0.75rem 1rem;
-        border: 2px solid #e2e8f0;
-        border-radius: 8px;
-        font-size: 0.95rem;
-        font-family: "Inter", "Noto Sans JP", sans-serif;
-        font-weight: 400;
-        resize: vertical;
-        min-height: 80px;
-        max-height: 150px;
+        min-width: 200px;
       }
-      .edit-form textarea:focus {
-        border-color: #667eea;
-        outline: none;
+
+      /* Action buttons under each message */
+      .message-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+      }
+
+      /* --- Mobile / small screens --- */
+      @media (max-width: 600px) {
+        .edit-form.active {
+          flex-direction: column; /* stack textarea + buttons */
+        }
+        .edit-form textarea {
+          width: 100%;
+        }
+        .edit-form button {
+          width: 100%; /* buttons full width */
+        }
+
+        .message-actions {
+          flex-direction: column; /* stack edit/delete */
+        }
+        .message-actions button {
+          width: 100%; /* full width buttons */
+        }
       }
       .status-indicator {
         width: 10px;
