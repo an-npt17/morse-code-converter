@@ -255,32 +255,6 @@
         }
       }
 
-      .char-selector {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
-
-      .char-option {
-        padding: 10px 20px;
-        border: 2px solid #e0e0e0;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        font-weight: 600;
-        background: white;
-      }
-
-      .char-option.selected {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-color: #667eea;
-      }
-
-      .char-option:hover {
-        border-color: #667eea;
-      }
-
       @media (max-width: 768px) {
         .form-grid {
           grid-template-columns: 1fr;
@@ -478,196 +452,48 @@
           <h2 class="card-title">Lamp Configuration</h2>
         </div>
 
-        <div class="form-group">
-          <label class="form-label"
-            >Dot Lamp Probabilities (Each lamp sends '1')</label
-          >
-          <div class="weight-inputs">
-            <div class="weight-group">
-              <label class="weight-label">Lamp 1</label>
-              <div class="input-group">
-                <input
-                  type="range"
-                  class="form-input"
-                  id="lampDot1"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                />
-                <span class="input-value" id="lampDot1Value">--</span>
-              </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label"
+              >Dot Lamp Probability (All 6 lamps send '1')</label
+            >
+            <div class="input-group">
+              <input
+                type="range"
+                class="form-input"
+                id="lampDotProb"
+                min="0"
+                max="1"
+                step="0.01"
+              />
+              <span class="input-value" id="lampDotProbValue">--</span>
             </div>
-            <div class="weight-group">
-              <label class="weight-label">Lamp 2</label>
-              <div class="input-group">
-                <input
-                  type="range"
-                  class="form-input"
-                  id="lampDot2"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                />
-                <span class="input-value" id="lampDot2Value">--</span>
-              </div>
-            </div>
-            <div class="weight-group">
-              <label class="weight-label">Lamp 3</label>
-              <div class="input-group">
-                <input
-                  type="range"
-                  class="form-input"
-                  id="lampDot3"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                />
-                <span class="input-value" id="lampDot3Value">--</span>
-              </div>
-            </div>
-            <div class="weight-group">
-              <label class="weight-label">Lamp 4</label>
-              <div class="input-group">
-                <input
-                  type="range"
-                  class="form-input"
-                  id="lampDot4"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                />
-                <span class="input-value" id="lampDot4Value">--</span>
-              </div>
-            </div>
-            <div class="weight-group">
-              <label class="weight-label">Lamp 5</label>
-              <div class="input-group">
-                <input
-                  type="range"
-                  class="form-input"
-                  id="lampDot5"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                />
-                <span class="input-value" id="lampDot5Value">--</span>
-              </div>
-            </div>
-            <div class="weight-group">
-              <label class="weight-label">Lamp 6</label>
-              <div class="input-group">
-                <input
-                  type="range"
-                  class="form-input"
-                  id="lampDot6"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                />
-                <span class="input-value" id="lampDot6Value">--</span>
-              </div>
-            </div>
+            <span class="form-help"
+              >Single probability for all lamps to send '1' during dot
+              messages</span
+            >
           </div>
-          <span class="form-help"
-            >Individual probability for each lamp to send '1' during dot
-            messages</span
-          >
-        </div>
 
-        <div class="form-group">
-          <label class="form-label"
-            >Dash Lamp Probabilities (Each lamp sends '2')</label
-          >
-          <div class="weight-inputs">
-            <div class="weight-group">
-              <label class="weight-label">Lamp 1</label>
-              <div class="input-group">
-                <input
-                  type="range"
-                  class="form-input"
-                  id="lampDash1"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                />
-                <span class="input-value" id="lampDash1Value">--</span>
-              </div>
+          <div class="form-group">
+            <label class="form-label"
+              >Dash Lamp Probability (All 6 lamps send '2')</label
+            >
+            <div class="input-group">
+              <input
+                type="range"
+                class="form-input"
+                id="lampDashProb"
+                min="0"
+                max="1"
+                step="0.01"
+              />
+              <span class="input-value" id="lampDashProbValue">--</span>
             </div>
-            <div class="weight-group">
-              <label class="weight-label">Lamp 2</label>
-              <div class="input-group">
-                <input
-                  type="range"
-                  class="form-input"
-                  id="lampDash2"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                />
-                <span class="input-value" id="lampDash2Value">--</span>
-              </div>
-            </div>
-            <div class="weight-group">
-              <label class="weight-label">Lamp 3</label>
-              <div class="input-group">
-                <input
-                  type="range"
-                  class="form-input"
-                  id="lampDash3"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                />
-                <span class="input-value" id="lampDash3Value">--</span>
-              </div>
-            </div>
-            <div class="weight-group">
-              <label class="weight-label">Lamp 4</label>
-              <div class="input-group">
-                <input
-                  type="range"
-                  class="form-input"
-                  id="lampDash4"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                />
-                <span class="input-value" id="lampDash4Value">--</span>
-              </div>
-            </div>
-            <div class="weight-group">
-              <label class="weight-label">Lamp 5</label>
-              <div class="input-group">
-                <input
-                  type="range"
-                  class="form-input"
-                  id="lampDash5"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                />
-                <span class="input-value" id="lampDash5Value">--</span>
-              </div>
-            </div>
-            <div class="weight-group">
-              <label class="weight-label">Lamp 6</label>
-              <div class="input-group">
-                <input
-                  type="range"
-                  class="form-input"
-                  id="lampDash6"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                />
-                <span class="input-value" id="lampDash6Value">--</span>
-              </div>
-            </div>
+            <span class="form-help"
+              >Single probability for all lamps to send '2' during dash
+              messages</span
+            >
           </div>
-          <span class="form-help"
-            >Individual probability for each lamp to send '2' during dash
-            messages</span
-          >
         </div>
       </div>
 
@@ -703,21 +529,21 @@
             parseFloat(e.target.value).toFixed(2);
         });
 
-      // Lamp probability sliders
-      for (let i = 1; i <= 6; i++) {
-        document
-          .getElementById(`lampDot${i}`)
-          .addEventListener("input", function (e) {
-            document.getElementById(`lampDot${i}Value`).textContent =
-              parseFloat(e.target.value).toFixed(2);
-          });
-        document
-          .getElementById(`lampDash${i}`)
-          .addEventListener("input", function (e) {
-            document.getElementById(`lampDash${i}Value`).textContent =
-              parseFloat(e.target.value).toFixed(2);
-          });
-      }
+      document
+        .getElementById("lampDotProb")
+        .addEventListener("input", function (e) {
+          document.getElementById("lampDotProbValue").textContent = parseFloat(
+            e.target.value,
+          ).toFixed(2);
+        });
+
+      document
+        .getElementById("lampDashProb")
+        .addEventListener("input", function (e) {
+          document.getElementById("lampDashProbValue").textContent = parseFloat(
+            e.target.value,
+          ).toFixed(2);
+        });
 
       // Tempo management
       function addTempoChoice(value = 700) {
@@ -754,7 +580,7 @@
             tempos.push(value);
           }
         });
-        return tempos.length > 0 ? tempos : [700]; // Default to 700 if empty
+        return tempos.length > 0 ? tempos : [700];
       }
 
       function loadTempoChoices(tempos) {
@@ -765,7 +591,6 @@
         });
       }
 
-      // Show notification
       function showNotification(message, type = "success") {
         const notification = document.createElement("div");
         notification.className = `notification ${type}`;
@@ -777,7 +602,6 @@
         }, 3000);
       }
 
-      // Load configuration from API
       async function loadConfig() {
         try {
           const response = await fetch("/api/config");
@@ -786,14 +610,12 @@
           const config = await response.json();
           currentConfig = config;
 
-          // Load tempo choices
           if (config.tempo_choices && config.tempo_choices.length > 0) {
             loadTempoChoices(config.tempo_choices);
           } else {
             loadTempoChoices([400, 700, 1000]);
           }
 
-          // Update dot form fields
           document.getElementById("dotPercussionProb").value =
             config.dot_percussion_probability;
           document.getElementById("dotPercussionProbValue").textContent =
@@ -806,7 +628,6 @@
           document.getElementById("dotWeight3").value =
             config.dot_choice_3_weight;
 
-          // Update dash form fields
           document.getElementById("dashStringProb").value =
             config.dash_string_probability;
           document.getElementById("dashStringProbValue").textContent =
@@ -821,23 +642,15 @@
           document.getElementById("dashWeight4").value =
             config.dash_choice_4_weight;
 
-          // Load lamp dot probabilities
-          for (let i = 0; i < 6; i++) {
-            const lampNum = i + 1;
-            const probability = config.lamp_dot_configs[i].probability;
-            document.getElementById(`lampDot${lampNum}`).value = probability;
-            document.getElementById(`lampDot${lampNum}Value`).textContent =
-              probability.toFixed(2);
-          }
+          document.getElementById("lampDotProb").value =
+            config.lamp_dot_probability;
+          document.getElementById("lampDotProbValue").textContent =
+            config.lamp_dot_probability.toFixed(2);
 
-          // Load lamp dash probabilities
-          for (let i = 0; i < 6; i++) {
-            const lampNum = i + 1;
-            const probability = config.lamp_dash_configs[i].probability;
-            document.getElementById(`lampDash${lampNum}`).value = probability;
-            document.getElementById(`lampDash${lampNum}Value`).textContent =
-              probability.toFixed(2);
-          }
+          document.getElementById("lampDashProb").value =
+            config.lamp_dash_probability;
+          document.getElementById("lampDashProbValue").textContent =
+            config.lamp_dash_probability.toFixed(2);
 
           showNotification("Configuration loaded successfully!");
         } catch (error) {
@@ -846,24 +659,7 @@
         }
       }
 
-      // Save configuration to API
       async function saveConfig() {
-        const lampDotConfigs = [];
-        const lampDashConfigs = [];
-
-        for (let i = 1; i <= 6; i++) {
-          lampDotConfigs.push({
-            probability: parseFloat(
-              document.getElementById(`lampDot${i}`).value,
-            ),
-          });
-          lampDashConfigs.push({
-            probability: parseFloat(
-              document.getElementById(`lampDash${i}`).value,
-            ),
-          });
-        }
-
         const config = {
           tempo_choices: getTempoChoices(),
 
@@ -896,8 +692,12 @@
             document.getElementById("dashWeight4").value,
           ),
 
-          lamp_dot_configs: lampDotConfigs,
-          lamp_dash_configs: lampDashConfigs,
+          lamp_dot_probability: parseFloat(
+            document.getElementById("lampDotProb").value,
+          ),
+          lamp_dash_probability: parseFloat(
+            document.getElementById("lampDashProb").value,
+          ),
         };
 
         try {
@@ -912,14 +712,15 @@
           if (!response.ok) throw new Error("Failed to save configuration");
 
           currentConfig = await response.json();
-          showNotification("Configuration saved successfully!");
+          showNotification(
+            "Configuration saved! Current message will be interrupted.",
+          );
         } catch (error) {
           console.error("Error saving config:", error);
           showNotification("Failed to save configuration", "error");
         }
       }
 
-      // Reset to default values
       function resetToDefaults() {
         loadTempoChoices([400, 700, 1000]);
 
@@ -936,18 +737,14 @@
         document.getElementById("dashWeight3").value = 30;
         document.getElementById("dashWeight4").value = 30;
 
-        // Reset lamp probabilities
-        for (let i = 1; i <= 6; i++) {
-          document.getElementById(`lampDot${i}`).value = 0.3;
-          document.getElementById(`lampDot${i}Value`).textContent = "0.30";
-          document.getElementById(`lampDash${i}`).value = 0.3;
-          document.getElementById(`lampDash${i}Value`).textContent = "0.30";
-        }
+        document.getElementById("lampDotProb").value = 0.3;
+        document.getElementById("lampDotProbValue").textContent = "0.30";
+        document.getElementById("lampDashProb").value = 0.3;
+        document.getElementById("lampDashProbValue").textContent = "0.30";
 
         showNotification("Reset to default values");
       }
 
-      // Load config on page load
       window.addEventListener("load", loadConfig);
     </script>
   </body>

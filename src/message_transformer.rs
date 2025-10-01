@@ -4,11 +4,6 @@ use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LampConfig {
-    pub probability: f64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransformerConfig {
     // Tempo configuration
     pub tempo_choices: Vec<u64>,
@@ -26,11 +21,11 @@ pub struct TransformerConfig {
     pub dash_choice_3_weight: u32,
     pub dash_choice_4_weight: u32,
 
-    // Lamp configuration (6 lamps for dot) - each lamp sends '1'
-    pub lamp_dot_configs: [LampConfig; 6],
+    // Single lamp probability for all lamps in dot messages
+    pub lamp_dot_probability: f64,
 
-    // Lamp configuration (6 lamps for dash) - each lamp sends '2'
-    pub lamp_dash_configs: [LampConfig; 6],
+    // Single lamp probability for all lamps in dash messages
+    pub lamp_dash_probability: f64,
 }
 
 impl Default for TransformerConfig {
@@ -52,25 +47,9 @@ impl Default for TransformerConfig {
             dash_choice_3_weight: 30,
             dash_choice_4_weight: 30,
 
-            // Lamp dot defaults (6 lamps) - each lamp sends '1' with probability
-            lamp_dot_configs: [
-                LampConfig { probability: 0.3 },
-                LampConfig { probability: 0.3 },
-                LampConfig { probability: 0.3 },
-                LampConfig { probability: 0.3 },
-                LampConfig { probability: 0.3 },
-                LampConfig { probability: 0.3 },
-            ],
-
-            // Lamp dash defaults (6 lamps) - each lamp sends '2' with probability
-            lamp_dash_configs: [
-                LampConfig { probability: 0.3 },
-                LampConfig { probability: 0.3 },
-                LampConfig { probability: 0.3 },
-                LampConfig { probability: 0.3 },
-                LampConfig { probability: 0.3 },
-                LampConfig { probability: 0.3 },
-            ],
+            // Single lamp probabilities
+            lamp_dot_probability: 0.3,
+            lamp_dash_probability: 0.3,
         }
     }
 }
@@ -91,14 +70,6 @@ pub fn convert_dot_message(config: &TransformerConfig) -> String {
         for _instrument in 1..=20 {
             selected.push('0');
         }
-        // Apply individual lamp configurations - each lamp sends '1' with its own probability
-        for lamp_config in &config.lamp_dot_configs {
-            if rng.random_bool(lamp_config.probability) {
-                selected.push('1');
-            } else {
-                selected.push('0');
-            }
-        }
     } else {
         // Percussion instruments (positions 1-12)
         for _percussion in 1..=12 {
@@ -116,17 +87,20 @@ pub fn convert_dot_message(config: &TransformerConfig) -> String {
             selected.push('0')
         }
 
-        // Lamps (positions 21-26) - all off when not in lamp mode
-        for _lamp in 1..=6 {
-            selected.push('0');
-        }
-
         // Ensure at least one instrument is active
         if selected[1..=20].iter().all(|&c| c == '0') {
             let idx = rng.random_range(1..=12);
             let dist = WeightedIndex::new(weights).unwrap();
             let choice = choices[dist.sample(&mut rng)];
             selected[idx] = choice;
+        }
+    }
+    // All 6 lamps use the same probability - each lamp sends '1' with lamp_dot_probability
+    for _lamp in 1..=6 {
+        if rng.random_bool(config.lamp_dot_probability) {
+            selected.push('1');
+        } else {
+            selected.push('0');
         }
     }
 
@@ -152,14 +126,6 @@ pub fn convert_dash_message(config: &TransformerConfig) -> String {
         for _instrument in 1..=20 {
             selected.push('0');
         }
-        // Apply individual lamp configurations - each lamp sends '2' with its own probability
-        for lamp_config in &config.lamp_dash_configs {
-            if rng.random_bool(lamp_config.probability) {
-                selected.push('2');
-            } else {
-                selected.push('0');
-            }
-        }
     } else {
         // Rest (positions 1-12)
         for _rest in 1..=12 {
@@ -177,17 +143,19 @@ pub fn convert_dash_message(config: &TransformerConfig) -> String {
             }
         }
 
-        // Lamps (positions 21-26) - all off when not in lamp mode
-        for _lamp in 1..=6 {
-            selected.push('0');
-        }
-
         // Ensure at least one instrument is active
         if selected[1..=20].iter().all(|&c| c == '0') {
             let idx = rng.random_range(13..=20);
             let dist = WeightedIndex::new(weights).unwrap();
             let choice = choices[dist.sample(&mut rng)];
             selected[idx] = choice;
+        }
+    }
+    for _lamp in 1..=6 {
+        if rng.random_bool(config.lamp_dash_probability) {
+            selected.push('2');
+        } else {
+            selected.push('0');
         }
     }
 

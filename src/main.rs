@@ -17,13 +17,14 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::thread;
 use std::time::Duration;
 use uuid::Uuid;
 use warp::Filter;
 
 static CONSECUTIVE_INSTRUMENT_COUNT: AtomicU32 = AtomicU32::new(0);
+static CONFIG_CHANGED: AtomicBool = AtomicBool::new(false);
 
 fn send_lamp() -> bool {
     let current_count = CONSECUTIVE_INSTRUMENT_COUNT.load(Ordering::SeqCst);
@@ -57,10 +58,12 @@ type ConfigStore = Arc<RwLock<TransformerConfig>>;
 const MESSAGES_FILE_PATH: &str = "messages.json";
 const CONFIG_FILE_PATH: &str = "transformer_config.json";
 
-fn generate_random_tempo() -> u64 {
-    let choices = [400, 700, 1000];
+fn generate_random_tempo(tempo_choices: &[u64]) -> u64 {
+    if tempo_choices.is_empty() {
+        return 700; // Default fallback
+    }
     let mut rng = rand::rng();
-    *choices.choose(&mut rng).unwrap()
+    *tempo_choices.choose(&mut rng).unwrap()
 }
 
 fn load_messages_from_file(file_path: &str) -> HashMap<String, Message> {
@@ -173,12 +176,13 @@ async fn main() {
     let message_store: MessageStore = Arc::new(RwLock::new(initial_messages));
 
     let initial_config = load_config_from_file(CONFIG_FILE_PATH);
-    let config_store: ConfigStore = Arc::new(RwLock::new(initial_config));
+    let config_store: ConfigStore = Arc::new(RwLock::new(initial_config.clone()));
 
     let morse_converter = Arc::new(MorseConverter {});
-    let tempo_store: TempoStore = Arc::new(RwLock::new(generate_random_tempo()));
+    let initial_tempo = generate_random_tempo(&initial_config.tempo_choices);
+    let tempo_store: TempoStore = Arc::new(RwLock::new(initial_tempo));
 
-    println!("Initial tempo: {} ms", *tempo_store.read());
+    println!("Initial tempo: {} ms", initial_tempo);
 
     start_auto_save_scheduler(message_store.clone(), config_store.clone());
 
@@ -355,6 +359,11 @@ async fn update_transformer_config(
 ) -> Result<impl warp::Reply, warp::Rejection> {
     *config_store.write() = new_config.clone();
     save_config_to_file(&new_config, CONFIG_FILE_PATH);
+
+    // Signal that config has changed to interrupt current sending
+    CONFIG_CHANGED.store(true, Ordering::SeqCst);
+    println!("Config updated - current message sending will be interrupted");
+
     Ok(warp::reply::json(&new_config))
 }
 
@@ -425,7 +434,11 @@ fn start_message_scheduler(
         }
         send_random_message(&store, &morse_converter, &tempo_store, &config_store);
 
-        let new_tempo = generate_random_tempo();
+        // Generate new tempo from current config's tempo_choices
+        let config = config_store.read();
+        let new_tempo = generate_random_tempo(&config.tempo_choices);
+        drop(config); // Release lock
+
         *tempo_store.write() = new_tempo;
         println!("New tempo: {} ms", new_tempo);
 
@@ -491,9 +504,17 @@ fn send_random_message(
 
 fn send_morse_to_serial(morse_code: &str, tempo_ms: u64, config_store: &ConfigStore) {
     let mut serial_sender = SerialSender::new("/dev/serial0", 9600).unwrap();
-    let config = config_store.read().clone();
 
     for char in morse_code.chars() {
+        // Check if config changed before each character
+        if CONFIG_CHANGED.load(Ordering::SeqCst) {
+            println!("Config changed - interrupting current message");
+            CONFIG_CHANGED.store(false, Ordering::SeqCst);
+            return;
+        }
+
+        let config = config_store.read().clone();
+
         match char {
             '.' => {
                 let dot_message = convert_dot_message(&config);
