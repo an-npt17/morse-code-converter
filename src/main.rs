@@ -46,7 +46,6 @@ fn send_lamp() -> bool {
 
         if elapsed >= 120 {
             println!("Lamp mode timeout (2 minutes) - exiting lamp mode");
-            CONSECUTIVE_INSTRUMENT_COUNT.store(0, Ordering::SeqCst);
             LAMP_MODE_START_TIME.store(0, Ordering::SeqCst);
             return false;
         }
@@ -476,9 +475,6 @@ fn start_message_scheduler(
         if !is_lamp_mode {
             CONSECUTIVE_INSTRUMENT_COUNT.fetch_add(1, Ordering::SeqCst);
         } else {
-            if !send_lamp() {
-                println!("Exited lamp mode");
-            }
             CONSECUTIVE_INSTRUMENT_COUNT.store(0, Ordering::SeqCst);
         }
 
