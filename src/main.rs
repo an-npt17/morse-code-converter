@@ -476,10 +476,10 @@ fn start_message_scheduler(
         if !is_lamp_mode {
             CONSECUTIVE_INSTRUMENT_COUNT.fetch_add(1, Ordering::SeqCst);
         } else {
-            CONSECUTIVE_INSTRUMENT_COUNT.store(0, Ordering::SeqCst);
             if !send_lamp() {
                 println!("Exited lamp mode");
             }
+            CONSECUTIVE_INSTRUMENT_COUNT.store(0, Ordering::SeqCst);
         }
 
         println!("Waiting 5 seconds before next message...");
@@ -574,7 +574,7 @@ fn send_morse_to_serial(morse_code: &str, tempo_ms: u64, config_store: &ConfigSt
                     Ok(_) => println!("Successfully sent space via serial!"),
                     Err(e) => eprintln!("Failed to send space via serial: {e}"),
                 }
-                thread::sleep(Duration::from_millis(tempo_ms * 4));
+                thread::sleep(Duration::from_millis(tempo_ms * 3));
             }
             '\n' => {
                 println!("New line character detected, sleep for 4*tempo");
