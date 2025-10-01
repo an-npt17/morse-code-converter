@@ -4,7 +4,9 @@ mod serial_send;
 
 use chrono::{DateTime, Utc};
 use clokwerk::{Scheduler, TimeUnits};
-use message_transformer::{convert_dash_message, convert_dot_message, convert_space_message};
+use message_transformer::{
+    TransformerConfig, convert_dash_message, convert_dot_message, convert_space_message,
+};
 use morse_converter::MorseConverter;
 use parking_lot::RwLock;
 use rand::prelude::*;
@@ -21,7 +23,6 @@ use std::time::Duration;
 use uuid::Uuid;
 use warp::Filter;
 
-// Global counter for consecutive instrument messages
 static CONSECUTIVE_INSTRUMENT_COUNT: AtomicU32 = AtomicU32::new(0);
 
 fn send_lamp() -> bool {
@@ -51,8 +52,10 @@ struct UpdateMessageRequest {
 
 type TempoStore = Arc<RwLock<u64>>;
 type MessageStore = Arc<RwLock<HashMap<String, Message>>>;
+type ConfigStore = Arc<RwLock<TransformerConfig>>;
 
 const MESSAGES_FILE_PATH: &str = "messages.json";
+const CONFIG_FILE_PATH: &str = "transformer_config.json";
 
 fn generate_random_tempo() -> u64 {
     let choices = [400, 700, 1000];
@@ -60,7 +63,6 @@ fn generate_random_tempo() -> u64 {
     *choices.choose(&mut rng).unwrap()
 }
 
-// Load messages from file on startup
 fn load_messages_from_file(file_path: &str) -> HashMap<String, Message> {
     if !Path::new(file_path).exists() {
         println!(
@@ -100,7 +102,32 @@ fn load_messages_from_file(file_path: &str) -> HashMap<String, Message> {
     }
 }
 
-// Save messages to file
+fn load_config_from_file(file_path: &str) -> TransformerConfig {
+    if !Path::new(file_path).exists() {
+        println!("Config file {} not found, using default config", file_path);
+        return TransformerConfig::default();
+    }
+
+    match fs::read_to_string(file_path) {
+        Ok(content) => match serde_json::from_str::<TransformerConfig>(&content) {
+            Ok(config) => {
+                println!("Loaded config from {}", file_path);
+                config
+            }
+            Err(e) => {
+                eprintln!("Failed to parse config from {}: {}", file_path, e);
+                println!("Using default config");
+                TransformerConfig::default()
+            }
+        },
+        Err(e) => {
+            eprintln!("Failed to read config file {}: {}", file_path, e);
+            println!("Using default config");
+            TransformerConfig::default()
+        }
+    }
+}
+
 fn save_messages_to_file(messages: &HashMap<String, Message>, file_path: &str) {
     match serde_json::to_string_pretty(messages) {
         Ok(json_content) => match fs::write(file_path, json_content) {
@@ -111,14 +138,26 @@ fn save_messages_to_file(messages: &HashMap<String, Message>, file_path: &str) {
     }
 }
 
-// Auto-save messages periodically
-fn start_auto_save_scheduler(message_store: MessageStore) {
+fn save_config_to_file(config: &TransformerConfig, file_path: &str) {
+    match serde_json::to_string_pretty(config) {
+        Ok(json_content) => match fs::write(file_path, json_content) {
+            Ok(_) => println!("Config saved to {}", file_path),
+            Err(e) => eprintln!("Failed to write config to {}: {}", file_path, e),
+        },
+        Err(e) => eprintln!("Failed to serialize config: {}", e),
+    }
+}
+
+fn start_auto_save_scheduler(message_store: MessageStore, config_store: ConfigStore) {
     thread::spawn(move || {
         let mut scheduler = Scheduler::new();
 
         scheduler.every(30.seconds()).run(move || {
             let messages = message_store.read();
             save_messages_to_file(&messages, MESSAGES_FILE_PATH);
+
+            let config = config_store.read();
+            save_config_to_file(&config, CONFIG_FILE_PATH);
         });
 
         loop {
@@ -130,23 +169,25 @@ fn start_auto_save_scheduler(message_store: MessageStore) {
 
 #[tokio::main]
 async fn main() {
-    // Load existing messages from file
     let initial_messages = load_messages_from_file(MESSAGES_FILE_PATH);
     let message_store: MessageStore = Arc::new(RwLock::new(initial_messages));
+
+    let initial_config = load_config_from_file(CONFIG_FILE_PATH);
+    let config_store: ConfigStore = Arc::new(RwLock::new(initial_config));
 
     let morse_converter = Arc::new(MorseConverter {});
     let tempo_store: TempoStore = Arc::new(RwLock::new(generate_random_tempo()));
 
     println!("Initial tempo: {} ms", *tempo_store.read());
 
-    // Start auto-save scheduler
-    start_auto_save_scheduler(message_store.clone());
+    start_auto_save_scheduler(message_store.clone(), config_store.clone());
 
     let store_clone = message_store.clone();
     let converter_clone = morse_converter.clone();
     let tempo_clone = tempo_store.clone();
+    let config_clone = config_store.clone();
     thread::spawn(move || {
-        start_message_scheduler(store_clone, converter_clone, tempo_clone);
+        start_message_scheduler(store_clone, converter_clone, tempo_clone, config_clone);
     });
 
     let cors = warp::cors()
@@ -158,9 +199,7 @@ async fn main() {
     let morse_clone = morse_converter.clone();
 
     let static_files = warp::path("static").and(warp::fs::dir("static"));
-
     let index = warp::path::end().map(|| warp::reply::html(include_str!("../static/index.html")));
-
     let api = warp::path("api");
 
     let get_messages = api
@@ -204,7 +243,6 @@ async fn main() {
         .and(with_tempo_store(tempo_store.clone()))
         .and_then(get_current_tempo);
 
-    // Add manual save endpoint
     let save_messages = api
         .and(warp::path("messages"))
         .and(warp::path("save"))
@@ -212,6 +250,22 @@ async fn main() {
         .and(warp::post())
         .and(with_store(messages_store.clone()))
         .and_then(save_messages_manually);
+
+    // Config endpoints
+    let get_config = api
+        .and(warp::path("config"))
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(with_config_store(config_store.clone()))
+        .and_then(get_transformer_config);
+
+    let update_config = api
+        .and(warp::path("config"))
+        .and(warp::path::end())
+        .and(warp::put())
+        .and(warp::body::json())
+        .and(with_config_store(config_store.clone()))
+        .and_then(update_transformer_config);
 
     let routes = index
         .or(static_files)
@@ -221,14 +275,18 @@ async fn main() {
         .or(delete_message)
         .or(get_tempo)
         .or(save_messages)
+        .or(get_config)
+        .or(update_config)
         .with(cors);
 
-    // Save messages before shutting down (register signal handler)
     let shutdown_store = message_store.clone();
+    let shutdown_config = config_store.clone();
     ctrlc::set_handler(move || {
-        println!("Received Ctrl+C, saving messages before shutdown...");
+        println!("Received Ctrl+C, saving messages and config before shutdown...");
         let messages = shutdown_store.read();
         save_messages_to_file(&messages, MESSAGES_FILE_PATH);
+        let config = shutdown_config.read();
+        save_config_to_file(&config, CONFIG_FILE_PATH);
         std::process::exit(0);
     })
     .expect("Error setting Ctrl-C handler");
@@ -255,6 +313,12 @@ fn with_tempo_store(
     warp::any().map(move || tempo.clone())
 }
 
+fn with_config_store(
+    config: ConfigStore,
+) -> impl Filter<Extract = (ConfigStore,), Error = std::convert::Infallible> + Clone {
+    warp::any().map(move || config.clone())
+}
+
 async fn get_all_messages(store: MessageStore) -> Result<impl warp::Reply, warp::Rejection> {
     let messages: Vec<Message> = store.read().values().cloned().collect();
     Ok(warp::reply::json(&messages))
@@ -278,14 +342,28 @@ async fn save_messages_manually(store: MessageStore) -> Result<impl warp::Reply,
     Ok(warp::reply::json(&response))
 }
 
+async fn get_transformer_config(
+    config_store: ConfigStore,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    let config = config_store.read().clone();
+    Ok(warp::reply::json(&config))
+}
+
+async fn update_transformer_config(
+    new_config: TransformerConfig,
+    config_store: ConfigStore,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    *config_store.write() = new_config.clone();
+    save_config_to_file(&new_config, CONFIG_FILE_PATH);
+    Ok(warp::reply::json(&new_config))
+}
+
 async fn create_new_message(
     req: CreateMessageRequest,
     store: MessageStore,
     morse_converter: Arc<MorseConverter>,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let id = Uuid::new_v4().to_string();
-
-    // Replace line breaks with a space for morse conversion only
     let morse_code = morse_converter.morse_converter(&req.text);
 
     let message = Message {
@@ -310,12 +388,9 @@ async fn update_existing_message(
     let mut messages = store.write();
 
     if let Some(message) = messages.get_mut(&id) {
-        message.text = req.text.clone(); // Keep original text with line breaks for display
-
-        // Replace line breaks with 4 spaces for morse conversion only
+        message.text = req.text.clone();
         let normalized_text = req.text.replace('\n', " ").replace('\r', "");
         message.morse_code = morse_converter.morse_converter(&normalized_text);
-
         Ok(warp::reply::json(message))
     } else {
         Err(warp::reject::not_found())
@@ -342,24 +417,21 @@ fn start_message_scheduler(
     store: MessageStore,
     morse_converter: Arc<MorseConverter>,
     tempo_store: TempoStore,
+    config_store: ConfigStore,
 ) {
     loop {
-        // Send a message
-        send_random_message(&store, &morse_converter, &tempo_store);
+        send_random_message(&store, &morse_converter, &tempo_store, &config_store);
 
-        // Change tempo after each message sent
         let new_tempo = generate_random_tempo();
         *tempo_store.write() = new_tempo;
         println!("New tempo: {} ms", new_tempo);
 
         if send_lamp() {
-            // check and reset if the lamp message is playing
             println!("Reset counting");
             CONSECUTIVE_INSTRUMENT_COUNT.store(0, Ordering::SeqCst);
         } else {
             CONSECUTIVE_INSTRUMENT_COUNT.fetch_add(1, Ordering::SeqCst);
         }
-        // Sleep for 5 seconds before next message
         println!("Waiting 5 seconds before next message...");
         thread::sleep(Duration::from_secs(5));
     }
@@ -369,6 +441,7 @@ fn send_random_message(
     store: &MessageStore,
     morse_converter: &Arc<MorseConverter>,
     tempo_store: &TempoStore,
+    config_store: &ConfigStore,
 ) {
     let selected_message_id = {
         let messages = store.read();
@@ -404,7 +477,7 @@ fn send_random_message(
     println!("Morse code: {morse_code}");
     println!("Current tempo: {current_tempo} ms");
 
-    send_morse_to_serial(&morse_code, current_tempo);
+    send_morse_to_serial(&morse_code, current_tempo, config_store);
 
     let mut messages = store.write();
     if let Some(message) = messages.get_mut(&selected_message_id) {
@@ -413,41 +486,42 @@ fn send_random_message(
     }
 }
 
-fn send_morse_to_serial(morse_code: &str, tempo_ms: u64) {
+fn send_morse_to_serial(morse_code: &str, tempo_ms: u64, config_store: &ConfigStore) {
     let mut serial_sender = SerialSender::new("/dev/serial0", 9600).unwrap();
+    let config = config_store.read().clone();
 
     for char in morse_code.chars() {
         match char {
             '.' => {
-                let dot_message = convert_dot_message();
+                let dot_message = convert_dot_message(&config);
                 println!("Sending: {dot_message}");
                 match serial_sender.send_raw(dot_message.as_bytes()) {
                     Ok(_) => println!("Successfully sent dot via serial!"),
                     Err(e) => eprintln!("Failed to send dot via serial: {e}"),
                 }
-                thread::sleep(Duration::from_millis(tempo_ms)); // Duration between each dot message is 1 `beat`
+                thread::sleep(Duration::from_millis(tempo_ms));
             }
             '-' => {
-                let dash_message = convert_dash_message();
+                let dash_message = convert_dash_message(&config);
                 println!("Sending: {dash_message}");
                 match serial_sender.send_raw(dash_message.as_bytes()) {
                     Ok(_) => println!("Successfully sent dash via serial!"),
                     Err(e) => eprintln!("Failed to send dash via serial: {e}"),
                 }
-                thread::sleep(Duration::from_millis(tempo_ms * 4)); // 5 `beats` duration
+                thread::sleep(Duration::from_millis(tempo_ms * 4));
             }
             ' ' => {
-                let space_message = convert_space_message();
+                let space_message = convert_space_message(&config);
                 println!("Sending: {space_message}");
                 match serial_sender.send_raw(space_message.as_bytes()) {
                     Ok(_) => println!("Successfully sent space via serial!"),
                     Err(e) => eprintln!("Failed to send space via serial: {e}"),
                 }
-                thread::sleep(Duration::from_millis(tempo_ms * 4)); // 4 `beats` for line breaks/spaces
+                thread::sleep(Duration::from_millis(tempo_ms * 4));
             }
             '\n' => {
                 println!("New line character detected, sleep for 4*tempo");
-                thread::sleep(Duration::from_millis(tempo_ms * 4)); // 4 `beats` for line breaks/spaces
+                thread::sleep(Duration::from_millis(tempo_ms * 4));
             }
             _ => {
                 continue;
