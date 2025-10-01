@@ -109,6 +109,10 @@ pub fn convert_dot_message(config: &TransformerConfig) -> String {
             selected.push('0');
         }
     }
+    if selected[21..=26].to_vec().iter().all(|&c| c == '0') {
+        let idx = rng.random_range(21..25);
+        selected[idx] = '1';
+    }
 
     selected.push('>');
     selected.push('\n');
@@ -174,6 +178,10 @@ pub fn convert_dash_message(config: &TransformerConfig) -> String {
         } else {
             selected.push('0');
         }
+    }
+    if selected[21..=26].iter().all(|&c| c == '0') {
+        let idx = rng.random_range(21..25);
+        selected[idx] = '2';
     }
 
     selected.push('>');
