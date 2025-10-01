@@ -1,773 +1,954 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Morse Transformer Settings</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+          Cantarell, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
 
-        .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 30px;
-        }
+      .header {
+        text-align: center;
+        color: white;
+        margin-bottom: 30px;
+      }
 
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-        }
+      .header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+      }
 
-        .header p {
-            font-size: 1.1em;
-            opacity: 0.9;
-        }
+      .header p {
+        font-size: 1.1em;
+        opacity: 0.9;
+      }
 
-        .nav-bar {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 30px;
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
+      .nav-bar {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 30px;
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+      }
 
-        .nav-link {
-            padding: 10px 24px;
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
+      .nav-link {
+        padding: 10px 24px;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
 
-        .nav-link:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
+      .nav-link:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
 
-        .nav-link.active {
-            background: white;
-            color: #667eea;
-        }
+      .nav-link.active {
+        background: white;
+        color: #667eea;
+      }
 
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
+      .card {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      }
 
-        .card-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
-        }
+      .card-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f0f0f0;
+      }
 
-        .card-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 20px;
-            margin-right: 15px;
-        }
+      .card-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 20px;
+        margin-right: 15px;
+      }
 
-        .card-title {
-            font-size: 1.5em;
-            color: #333;
-            font-weight: 600;
-        }
+      .card-title {
+        font-size: 1.5em;
+        color: #333;
+        font-weight: 600;
+      }
 
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #555;
+        font-size: 0.95em;
+      }
+
+      .form-help {
+        display: block;
+        margin-top: 5px;
+        font-size: 0.85em;
+        color: #888;
+      }
+
+      .form-input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 1em;
+        transition: all 0.3s ease;
+      }
+
+      .form-input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .input-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .input-value {
+        min-width: 60px;
+        text-align: center;
+        font-weight: 600;
+        color: #667eea;
+        padding: 8px;
+        background: #f8f9ff;
+        border-radius: 6px;
+      }
+
+      .weight-inputs {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 15px;
+      }
+
+      .weight-group {
+        background: #f8f9ff;
+        padding: 15px;
+        border-radius: 8px;
+        border: 2px solid #e8eaff;
+      }
+
+      .weight-label {
+        display: block;
+        font-size: 0.9em;
+        color: #667eea;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+
+      .button-group {
+        display: flex;
+        gap: 15px;
+        margin-top: 30px;
+        justify-content: center;
+      }
+
+      .btn {
+        padding: 14px 32px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1em;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+      }
+
+      .btn-secondary {
+        background: white;
+        color: #667eea;
+        border: 2px solid #667eea;
+      }
+
+      .btn-secondary:hover {
+        background: #f8f9ff;
+      }
+
+      .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 16px 24px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        animation: slideIn 0.3s ease;
+        z-index: 1000;
+      }
+
+      .notification.success {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      }
+
+      .notification.error {
+        background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      .char-selector {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .char-option {
+        padding: 10px 20px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 600;
+        background: white;
+      }
+
+      .char-option.selected {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-color: #667eea;
+      }
+
+      .char-option:hover {
+        border-color: #667eea;
+      }
+
+      @media (max-width: 768px) {
         .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #555;
-            font-size: 0.95em;
-        }
-
-        .form-help {
-            display: block;
-            margin-top: 5px;
-            font-size: 0.85em;
-            color: #888;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 1em;
-            transition: all 0.3s ease;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .input-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .input-value {
-            min-width: 60px;
-            text-align: center;
-            font-weight: 600;
-            color: #667eea;
-            padding: 8px;
-            background: #f8f9ff;
-            border-radius: 6px;
+          grid-template-columns: 1fr;
         }
 
         .weight-inputs {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px;
-        }
-
-        .weight-group {
-            background: #f8f9ff;
-            padding: 15px;
-            border-radius: 8px;
-            border: 2px solid #e8eaff;
-        }
-
-        .weight-label {
-            display: block;
-            font-size: 0.9em;
-            color: #667eea;
-            font-weight: 600;
-            margin-bottom: 8px;
+          grid-template-columns: 1fr;
         }
 
         .button-group {
-            display: flex;
-            gap: 15px;
-            margin-top: 30px;
-            justify-content: center;
+          flex-direction: column;
         }
 
         .btn {
-            padding: 14px 32px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+          width: 100%;
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        .nav-bar {
+          flex-direction: column;
         }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
-        }
-
-        .btn-secondary {
-            background: white;
-            color: #667eea;
-            border: 2px solid #667eea;
-        }
-
-        .btn-secondary:hover {
-            background: #f8f9ff;
-        }
-
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 16px 24px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 600;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            animation: slideIn 0.3s ease;
-            z-index: 1000;
-        }
-
-        .notification.success {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-        }
-
-        .notification.error {
-            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        .char-selector {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .char-option {
-            padding: 10px 20px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 600;
-            background: white;
-        }
-
-        .char-option.selected {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-color: #667eea;
-        }
-
-        .char-option:hover {
-            border-color: #667eea;
-        }
-
-        @media (max-width: 768px) {
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .weight-inputs {
-                grid-template-columns: 1fr;
-            }
-            
-            .button-group {
-                flex-direction: column;
-            }
-            
-            .btn {
-                width: 100%;
-            }
-
-            .nav-bar {
-                flex-direction: column;
-            }
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <div class="header">
-            <h1>⚙️ Transformer Settings</h1>
-            <p>Configure weights and probabilities for message transformation</p>
+      <div class="header">
+        <h1>⚙️ Transformer Settings</h1>
+        <p>Configure weights and probabilities for message transformation</p>
+      </div>
+
+      <div class="nav-bar">
+        <a href="/" class="nav-link">Messages</a>
+        <a href="/static/settings.html" class="nav-link active">Settings</a>
+      </div>
+
+      <!-- Tempo Configuration -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">🎵</div>
+          <h2 class="card-title">Tempo Configuration</h2>
         </div>
 
-        <div class="nav-bar">
-            <a href="/" class="nav-link">Messages</a>
-            <a href="/static/settings.html" class="nav-link active">Settings</a>
+        <div class="form-group">
+          <label class="form-label">Tempo Choices (milliseconds)</label>
+          <div id="tempoContainer" class="weight-inputs">
+            <!-- Tempo inputs will be dynamically generated -->
+          </div>
+          <div style="margin-top: 15px">
+            <button
+              class="btn btn-secondary"
+              onclick="addTempoChoice()"
+              style="padding: 10px 20px"
+            >
+              + Add Tempo
+            </button>
+          </div>
+          <span class="form-help"
+            >Random tempo will be chosen from these values. Click + to add more
+            options.</span
+          >
+        </div>
+      </div>
+
+      <!-- Dot Configuration -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">•</div>
+          <h2 class="card-title">Dot Message Configuration</h2>
         </div>
 
-        <!-- Tempo Configuration -->
-        <div class="card">
-            <div class="card-header">
-                <div class="card-icon">🎵</div>
-                <h2 class="card-title">Tempo Configuration</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Percussion Activation Probability</label>
+            <div class="input-group">
+              <input
+                type="range"
+                class="form-input"
+                id="dotPercussionProb"
+                min="0"
+                max="1"
+                step="0.01"
+              />
+              <span class="input-value" id="dotPercussionProbValue">--</span>
             </div>
-            
-            <div class="form-group">
-                <label class="form-label">Tempo Choices (milliseconds)</label>
-                <div id="tempoContainer" class="weight-inputs">
-                    <!-- Tempo inputs will be dynamically generated -->
-                </div>
-                <div style="margin-top: 15px;">
-                    <button class="btn btn-secondary" onclick="addTempoChoice()" style="padding: 10px 20px;">+ Add Tempo</button>
-                </div>
-                <span class="form-help">Random tempo will be chosen from these values. Click + to add more options.</span>
-            </div>
+            <span class="form-help"
+              >Probability of activating percussion instruments (0.0 -
+              1.0)</span
+            >
+          </div>
         </div>
 
-        <!-- Dot Configuration -->
-        <div class="card">
-            <div class="card-header">
-                <div class="card-icon">•</div>
-                <h2 class="card-title">Dot Message Configuration</h2>
+        <div class="form-group">
+          <label class="form-label"
+            >Choice Weights (Total determines distribution)</label
+          >
+          <div class="weight-inputs">
+            <div class="weight-group">
+              <label class="weight-label">Choice 1</label>
+              <input type="number" class="form-input" id="dotWeight1" min="0" />
             </div>
-            
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="form-label">Percussion Activation Probability</label>
-                    <div class="input-group">
-                        <input type="range" class="form-input" id="dotPercussionProb" 
-                               min="0" max="1" step="0.01">
-                        <span class="input-value" id="dotPercussionProbValue">--</span>
-                    </div>
-                    <span class="form-help">Probability of activating percussion instruments (0.0 - 1.0)</span>
-                </div>
+            <div class="weight-group">
+              <label class="weight-label">Choice 2</label>
+              <input type="number" class="form-input" id="dotWeight2" min="0" />
             </div>
+            <div class="weight-group">
+              <label class="weight-label">Choice 3</label>
+              <input type="number" class="form-input" id="dotWeight3" min="0" />
+            </div>
+          </div>
+          <span class="form-help"
+            >Higher weights mean higher probability of selection</span
+          >
+        </div>
+      </div>
 
-            <div class="form-group">
-                <label class="form-label">Choice Weights (Total determines distribution)</label>
-                <div class="weight-inputs">
-                    <div class="weight-group">
-                        <label class="weight-label">Choice 1</label>
-                        <input type="number" class="form-input" id="dotWeight1" min="0">
-                    </div>
-                    <div class="weight-group">
-                        <label class="weight-label">Choice 2</label>
-                        <input type="number" class="form-input" id="dotWeight2" min="0">
-                    </div>
-                    <div class="weight-group">
-                        <label class="weight-label">Choice 3</label>
-                        <input type="number" class="form-input" id="dotWeight3" min="0">
-                    </div>
-                </div>
-                <span class="form-help">Higher weights mean higher probability of selection</span>
-            </div>
+      <!-- Dash Configuration -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">−</div>
+          <h2 class="card-title">Dash Message Configuration</h2>
         </div>
 
-        <!-- Dash Configuration -->
-        <div class="card">
-            <div class="card-header">
-                <div class="card-icon">−</div>
-                <h2 class="card-title">Dash Message Configuration</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">String Instrument Probability</label>
+            <div class="input-group">
+              <input
+                type="range"
+                class="form-input"
+                id="dashStringProb"
+                min="0"
+                max="1"
+                step="0.01"
+              />
+              <span class="input-value" id="dashStringProbValue">--</span>
             </div>
-            
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="form-label">String Instrument Probability</label>
-                    <div class="input-group">
-                        <input type="range" class="form-input" id="dashStringProb" 
-                               min="0" max="1" step="0.01">
-                        <span class="input-value" id="dashStringProbValue">--</span>
-                    </div>
-                    <span class="form-help">Probability of activating string instruments (0.0 - 1.0)</span>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Choice Weights (Total determines distribution)</label>
-                <div class="weight-inputs">
-                    <div class="weight-group">
-                        <label class="weight-label">Choice 1</label>
-                        <input type="number" class="form-input" id="dashWeight1" min="0">
-                    </div>
-                    <div class="weight-group">
-                        <label class="weight-label">Choice 2</label>
-                        <input type="number" class="form-input" id="dashWeight2" min="0">
-                    </div>
-                    <div class="weight-group">
-                        <label class="weight-label">Choice 3</label>
-                        <input type="number" class="form-input" id="dashWeight3" min="0">
-                    </div>
-                    <div class="weight-group">
-                        <label class="weight-label">Choice 4</label>
-                        <input type="number" class="form-input" id="dashWeight4" min="0">
-                    </div>
-                </div>
-                <span class="form-help">Higher weights mean higher probability of selection</span>
-            </div>
+            <span class="form-help"
+              >Probability of activating string instruments (0.0 - 1.0)</span
+            >
+          </div>
         </div>
 
-        <!-- Lamp Configuration -->
-        <div class="card">
-            <div class="card-header">
-                <div class="card-icon">💡</div>
-                <h2 class="card-title">Lamp Configuration</h2>
+        <div class="form-group">
+          <label class="form-label"
+            >Choice Weights (Total determines distribution)</label
+          >
+          <div class="weight-inputs">
+            <div class="weight-group">
+              <label class="weight-label">Choice 1</label>
+              <input
+                type="number"
+                class="form-input"
+                id="dashWeight1"
+                min="0"
+              />
             </div>
-            
-            <div class="form-group">
-                <label class="form-label">Dot Lamp Probabilities (Each lamp sends '1')</label>
-                <div class="weight-inputs">
-                    <div class="weight-group">
-                        <label class="weight-label">Lamp 1</label>
-                        <div class="input-group">
-                            <input type="range" class="form-input" id="lampDot1" 
-                                   min="0" max="1" step="0.01">
-                            <span class="input-value" id="lampDot1Value">--</span>
-                        </div>
-                    </div>
-                    <div class="weight-group">
-                        <label class="weight-label">Lamp 2</label>
-                        <div class="input-group">
-                            <input type="range" class="form-input" id="lampDot2" 
-                                   min="0" max="1" step="0.01">
-                            <span class="input-value" id="lampDot2Value">--</span>
-                        </div>
-                    </div>
-                    <div class="weight-group">
-                        <label class="weight-label">Lamp 3</label>
-                        <div class="input-group">
-                            <input type="range" class="form-input" id="lampDot3" 
-                                   min="0" max="1" step="0.01">
-                            <span class="input-value" id="lampDot3Value">--</span>
-                        </div>
-                    </div>
-                    <div class="weight-group">
-                        <label class="weight-label">Lamp 4</label>
-                        <div class="input-group">
-                            <input type="range" class="form-input" id="lampDot4" 
-                                   min="0" max="1" step="0.01">
-                            <span class="input-value" id="lampDot4Value">--</span>
-                        </div>
-                    </div>
-                    <div class="weight-group">
-                        <label class="weight-label">Lamp 5</label>
-                        <div class="input-group">
-                            <input type="range" class="form-input" id="lampDot5" 
-                                   min="0" max="1" step="0.01">
-                            <span class="input-value" id="lampDot5Value">--</span>
-                        </div>
-                    </div>
-                    <div class="weight-group">
-                        <label class="weight-label">Lamp 6</label>
-                        <div class="input-group">
-                            <input type="range" class="form-input" id="lampDot6" 
-                                   min="0" max="1" step="0.01">
-                            <span class="input-value" id="lampDot6Value">--</span>
-                        </div>
-                    </div>
-                </div>
-                <span class="form-help">Individual probability for each lamp to send '1' during dot messages</span>
+            <div class="weight-group">
+              <label class="weight-label">Choice 2</label>
+              <input
+                type="number"
+                class="form-input"
+                id="dashWeight2"
+                min="0"
+              />
             </div>
+            <div class="weight-group">
+              <label class="weight-label">Choice 3</label>
+              <input
+                type="number"
+                class="form-input"
+                id="dashWeight3"
+                min="0"
+              />
+            </div>
+            <div class="weight-group">
+              <label class="weight-label">Choice 4</label>
+              <input
+                type="number"
+                class="form-input"
+                id="dashWeight4"
+                min="0"
+              />
+            </div>
+          </div>
+          <span class="form-help"
+            >Higher weights mean higher probability of selection</span
+          >
+        </div>
+      </div>
 
-            <div class="form-group">
-                <label class="form-label">Dash Lamp Probabilities (Each lamp sends '2')</label>
-                <div class="weight-inputs">
-                    <div class="weight-group">
-                        <label class="weight-label">Lamp 1</label>
-                        <div class="input-group">
-                            <input type="range" class="form-input" id="lampDash1" 
-                                   min="0" max="1" step="0.01">
-                            <span class="input-value" id="lampDash1Value">--</span>
-                        </div>
-                    </div>
-                    <div class="weight-group">
-                        <label class="weight-label">Lamp 2</label>
-                        <div class="input-group">
-                            <input type="range" class="form-input" id="lampDash2" 
-                                   min="0" max="1" step="0.01">
-                            <span class="input-value" id="lampDash2Value">--</span>
-                        </div>
-                    </div>
-                    <div class="weight-group">
-                        <label class="weight-label">Lamp 3</label>
-                        <div class="input-group">
-                            <input type="range" class="form-input" id="lampDash3" 
-                                   min="0" max="1" step="0.01">
-                            <span class="input-value" id="lampDash3Value">--</span>
-                        </div>
-                    </div>
-                    <div class="weight-group">
-                        <label class="weight-label">Lamp 4</label>
-                        <div class="input-group">
-                            <input type="range" class="form-input" id="lampDash4" 
-                                   min="0" max="1" step="0.01">
-                            <span class="input-value" id="lampDash4Value">--</span>
-                        </div>
-                    </div>
-                    <div class="weight-group">
-                        <label class="weight-label">Lamp 5</label>
-                        <div class="input-group">
-                            <input type="range" class="form-input" id="lampDash5" 
-                                   min="0" max="1" step="0.01">
-                            <span class="input-value" id="lampDash5Value">--</span>
-                        </div>
-                    </div>
-                    <div class="weight-group">
-                        <label class="weight-label">Lamp 6</label>
-                        <div class="input-group">
-                            <input type="range" class="form-input" id="lampDash6" 
-                                   min="0" max="1" step="0.01">
-                            <span class="input-value" id="lampDash6Value">--</span>
-                        </div>
-                    </div>
-                </div>
-                <span class="form-help">Individual probability for each lamp to send '2' during dash messages</span>
-            </div>
-        </div>">1</div>
-                        <div class="char-option" data-value="2">2</div>
-                        <div class="char-option" data-value="3">3</div>
-                        <div class="char-option" data-value="4">4</div>
-                    </div>
-                    <span class="form-help">Character to use for lamp activation on dash messages</span>
-                </div>
-            </div>
+      <!-- Lamp Configuration -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">💡</div>
+          <h2 class="card-title">Lamp Configuration</h2>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="button-group">
-            <button class="btn btn-primary" onclick="saveConfig()">Save Configuration</button>
-            <button class="btn btn-secondary" onclick="loadConfig()">Reload Current</button>
-            <button class="btn btn-secondary" onclick="resetToDefaults()">Reset to Defaults</button>
+        <div class="form-group">
+          <label class="form-label"
+            >Dot Lamp Probabilities (Each lamp sends '1')</label
+          >
+          <div class="weight-inputs">
+            <div class="weight-group">
+              <label class="weight-label">Lamp 1</label>
+              <div class="input-group">
+                <input
+                  type="range"
+                  class="form-input"
+                  id="lampDot1"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                />
+                <span class="input-value" id="lampDot1Value">--</span>
+              </div>
+            </div>
+            <div class="weight-group">
+              <label class="weight-label">Lamp 2</label>
+              <div class="input-group">
+                <input
+                  type="range"
+                  class="form-input"
+                  id="lampDot2"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                />
+                <span class="input-value" id="lampDot2Value">--</span>
+              </div>
+            </div>
+            <div class="weight-group">
+              <label class="weight-label">Lamp 3</label>
+              <div class="input-group">
+                <input
+                  type="range"
+                  class="form-input"
+                  id="lampDot3"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                />
+                <span class="input-value" id="lampDot3Value">--</span>
+              </div>
+            </div>
+            <div class="weight-group">
+              <label class="weight-label">Lamp 4</label>
+              <div class="input-group">
+                <input
+                  type="range"
+                  class="form-input"
+                  id="lampDot4"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                />
+                <span class="input-value" id="lampDot4Value">--</span>
+              </div>
+            </div>
+            <div class="weight-group">
+              <label class="weight-label">Lamp 5</label>
+              <div class="input-group">
+                <input
+                  type="range"
+                  class="form-input"
+                  id="lampDot5"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                />
+                <span class="input-value" id="lampDot5Value">--</span>
+              </div>
+            </div>
+            <div class="weight-group">
+              <label class="weight-label">Lamp 6</label>
+              <div class="input-group">
+                <input
+                  type="range"
+                  class="form-input"
+                  id="lampDot6"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                />
+                <span class="input-value" id="lampDot6Value">--</span>
+              </div>
+            </div>
+          </div>
+          <span class="form-help"
+            >Individual probability for each lamp to send '1' during dot
+            messages</span
+          >
         </div>
+
+        <div class="form-group">
+          <label class="form-label"
+            >Dash Lamp Probabilities (Each lamp sends '2')</label
+          >
+          <div class="weight-inputs">
+            <div class="weight-group">
+              <label class="weight-label">Lamp 1</label>
+              <div class="input-group">
+                <input
+                  type="range"
+                  class="form-input"
+                  id="lampDash1"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                />
+                <span class="input-value" id="lampDash1Value">--</span>
+              </div>
+            </div>
+            <div class="weight-group">
+              <label class="weight-label">Lamp 2</label>
+              <div class="input-group">
+                <input
+                  type="range"
+                  class="form-input"
+                  id="lampDash2"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                />
+                <span class="input-value" id="lampDash2Value">--</span>
+              </div>
+            </div>
+            <div class="weight-group">
+              <label class="weight-label">Lamp 3</label>
+              <div class="input-group">
+                <input
+                  type="range"
+                  class="form-input"
+                  id="lampDash3"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                />
+                <span class="input-value" id="lampDash3Value">--</span>
+              </div>
+            </div>
+            <div class="weight-group">
+              <label class="weight-label">Lamp 4</label>
+              <div class="input-group">
+                <input
+                  type="range"
+                  class="form-input"
+                  id="lampDash4"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                />
+                <span class="input-value" id="lampDash4Value">--</span>
+              </div>
+            </div>
+            <div class="weight-group">
+              <label class="weight-label">Lamp 5</label>
+              <div class="input-group">
+                <input
+                  type="range"
+                  class="form-input"
+                  id="lampDash5"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                />
+                <span class="input-value" id="lampDash5Value">--</span>
+              </div>
+            </div>
+            <div class="weight-group">
+              <label class="weight-label">Lamp 6</label>
+              <div class="input-group">
+                <input
+                  type="range"
+                  class="form-input"
+                  id="lampDash6"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                />
+                <span class="input-value" id="lampDash6Value">--</span>
+              </div>
+            </div>
+          </div>
+          <span class="form-help"
+            >Individual probability for each lamp to send '2' during dash
+            messages</span
+          >
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="button-group">
+        <button class="btn btn-primary" onclick="saveConfig()">
+          Save Configuration
+        </button>
+        <button class="btn btn-secondary" onclick="loadConfig()">
+          Reload Current
+        </button>
+        <button class="btn btn-secondary" onclick="resetToDefaults()">
+          Reset to Defaults
+        </button>
+      </div>
     </div>
 
     <script>
-        let currentConfig = {};
+      let currentConfig = {};
 
-        // Range input value display
-        document.getElementById('dotPercussionProb').addEventListener('input', function(e) {
-            document.getElementById('dotPercussionProbValue').textContent = parseFloat(e.target.value).toFixed(2);
+      // Range input value display
+      document
+        .getElementById("dotPercussionProb")
+        .addEventListener("input", function (e) {
+          document.getElementById("dotPercussionProbValue").textContent =
+            parseFloat(e.target.value).toFixed(2);
         });
 
-        document.getElementById('dashStringProb').addEventListener('input', function(e) {
-            document.getElementById('dashStringProbValue').textContent = parseFloat(e.target.value).toFixed(2);
+      document
+        .getElementById("dashStringProb")
+        .addEventListener("input", function (e) {
+          document.getElementById("dashStringProbValue").textContent =
+            parseFloat(e.target.value).toFixed(2);
         });
 
-        // Lamp probability sliders
-        for (let i = 1; i <= 6; i++) {
-            document.getElementById(`lampDot${i}`).addEventListener('input', function(e) {
-                document.getElementById(`lampDot${i}Value`).textContent = parseFloat(e.target.value).toFixed(2);
-            });
-            document.getElementById(`lampDash${i}`).addEventListener('input', function(e) {
-                document.getElementById(`lampDash${i}Value`).textContent = parseFloat(e.target.value).toFixed(2);
-            });
-        }
+      // Lamp probability sliders
+      for (let i = 1; i <= 6; i++) {
+        document
+          .getElementById(`lampDot${i}`)
+          .addEventListener("input", function (e) {
+            document.getElementById(`lampDot${i}Value`).textContent =
+              parseFloat(e.target.value).toFixed(2);
+          });
+        document
+          .getElementById(`lampDash${i}`)
+          .addEventListener("input", function (e) {
+            document.getElementById(`lampDash${i}Value`).textContent =
+              parseFloat(e.target.value).toFixed(2);
+          });
+      }
 
-        // Tempo management
-        function addTempoChoice(value = 700) {
-            const container = document.getElementById('tempoContainer');
-            const tempoId = 'tempo_' + Date.now();
-            
-            const tempoGroup = document.createElement('div');
-            tempoGroup.className = 'weight-group';
-            tempoGroup.id = tempoId;
-            tempoGroup.innerHTML = `
+      // Tempo management
+      function addTempoChoice(value = 700) {
+        const container = document.getElementById("tempoContainer");
+        const tempoId = "tempo_" + Date.now();
+
+        const tempoGroup = document.createElement("div");
+        tempoGroup.className = "weight-group";
+        tempoGroup.id = tempoId;
+        tempoGroup.innerHTML = `
                 <label class="weight-label">Tempo (ms)</label>
                 <div style="display: flex; gap: 10px; align-items: center;">
                     <input type="number" class="form-input" value="${value}" min="100" max="5000" style="flex: 1;">
                     <button onclick="removeTempo('${tempoId}')" style="padding: 8px 12px; background: #eb3349; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">×</button>
                 </div>
             `;
-            container.appendChild(tempoGroup);
+        container.appendChild(tempoGroup);
+      }
+
+      function removeTempo(tempoId) {
+        const element = document.getElementById(tempoId);
+        if (element) {
+          element.remove();
         }
+      }
 
-        function removeTempo(tempoId) {
-            const element = document.getElementById(tempoId);
-            if (element) {
-                element.remove();
-            }
-        }
+      function getTempoChoices() {
+        const container = document.getElementById("tempoContainer");
+        const inputs = container.querySelectorAll('input[type="number"]');
+        const tempos = [];
+        inputs.forEach((input) => {
+          const value = parseInt(input.value);
+          if (value > 0) {
+            tempos.push(value);
+          }
+        });
+        return tempos.length > 0 ? tempos : [700]; // Default to 700 if empty
+      }
 
-        function getTempoChoices() {
-            const container = document.getElementById('tempoContainer');
-            const inputs = container.querySelectorAll('input[type="number"]');
-            const tempos = [];
-            inputs.forEach(input => {
-                const value = parseInt(input.value);
-                if (value > 0) {
-                    tempos.push(value);
-                }
-            });
-            return tempos.length > 0 ? tempos : [700]; // Default to 700 if empty
-        }
+      function loadTempoChoices(tempos) {
+        const container = document.getElementById("tempoContainer");
+        container.innerHTML = "";
+        tempos.forEach((tempo) => {
+          addTempoChoice(tempo);
+        });
+      }
 
-        function loadTempoChoices(tempos) {
-            const container = document.getElementById('tempoContainer');
-            container.innerHTML = '';
-            tempos.forEach(tempo => {
-                addTempoChoice(tempo);
-            });
-        }
+      // Show notification
+      function showNotification(message, type = "success") {
+        const notification = document.createElement("div");
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
 
-        // Show notification
-        function showNotification(message, type = 'success') {
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
-        }
+        setTimeout(() => {
+          notification.remove();
+        }, 3000);
+      }
 
-        // Load configuration from API
-        async function loadConfig() {
-            try {
-                const response = await fetch('/api/config');
-                if (!response.ok) throw new Error('Failed to load configuration');
-                
-                const config = await response.json();
-                currentConfig = config;
-                
-                // Load tempo choices
-                if (config.tempo_choices && config.tempo_choices.length > 0) {
-                    loadTempoChoices(config.tempo_choices);
-                } else {
-                    loadTempoChoices([400, 700, 1000]);
-                }
-                
-                // Update dot form fields
-                document.getElementById('dotPercussionProb').value = config.dot_percussion_probability;
-                document.getElementById('dotPercussionProbValue').textContent = 
-                    config.dot_percussion_probability.toFixed(2);
-                
-                document.getElementById('dotWeight1').value = config.dot_choice_1_weight;
-                document.getElementById('dotWeight2').value = config.dot_choice_2_weight;
-                document.getElementById('dotWeight3').value = config.dot_choice_3_weight;
-                
-                // Update dash form fields
-                document.getElementById('dashStringProb').value = config.dash_string_probability;
-                document.getElementById('dashStringProbValue').textContent = 
-                    config.dash_string_probability.toFixed(2);
-                
-                document.getElementById('dashWeight1').value = config.dash_choice_1_weight;
-                document.getElementById('dashWeight2').value = config.dash_choice_2_weight;
-                document.getElementById('dashWeight3').value = config.dash_choice_3_weight;
-                document.getElementById('dashWeight4').value = config.dash_choice_4_weight;
-                
-                // Load lamp dot probabilities
-                for (let i = 0; i < 6; i++) {
-                    const lampNum = i + 1;
-                    const probability = config.lamp_dot_configs[i].probability;
-                    document.getElementById(`lampDot${lampNum}`).value = probability;
-                    document.getElementById(`lampDot${lampNum}Value`).textContent = probability.toFixed(2);
-                }
-                
-                // Load lamp dash probabilities
-                for (let i = 0; i < 6; i++) {
-                    const lampNum = i + 1;
-                    const probability = config.lamp_dash_configs[i].probability;
-                    document.getElementById(`lampDash${lampNum}`).value = probability;
-                    document.getElementById(`lampDash${lampNum}Value`).textContent = probability.toFixed(2);
-                }
-                
-                showNotification('Configuration loaded successfully!');
-            } catch (error) {
-                console.error('Error loading config:', error);
-                showNotification('Failed to load configuration', 'error');
-            }
-        }
+      // Load configuration from API
+      async function loadConfig() {
+        try {
+          const response = await fetch("/api/config");
+          if (!response.ok) throw new Error("Failed to load configuration");
 
-        // Save configuration to API
-        async function saveConfig() {
-            const lampDotConfigs = [];
-            const lampDashConfigs = [];
-            
-            for (let i = 1; i <= 6; i++) {
-                lampDotConfigs.push({
-                    probability: parseFloat(document.getElementById(`lampDot${i}`).value)
-                });
-                lampDashConfigs.push({
-                    probability: parseFloat(document.getElementById(`lampDash${i}`).value)
-                });
-            }
+          const config = await response.json();
+          currentConfig = config;
 
-            const config = {
-                tempo_choices: getTempoChoices(),
-                
-                dot_percussion_probability: parseFloat(document.getElementById('dotPercussionProb').value),
-                dot_choice_1_weight: parseInt(document.getElementById('dotWeight1').value),
-                dot_choice_2_weight: parseInt(document.getElementById('dotWeight2').value),
-                dot_choice_3_weight: parseInt(document.getElementById('dotWeight3').value),
-                
-                dash_string_probability: parseFloat(document.getElementById('dashStringProb').value),
-                dash_choice_1_weight: parseInt(document.getElementById('dashWeight1').value),
-                dash_choice_2_weight: parseInt(document.getElementById('dashWeight2').value),
-                dash_choice_3_weight: parseInt(document.getElementById('dashWeight3').value),
-                dash_choice_4_weight: parseInt(document.getElementById('dashWeight4').value),
-                
-                lamp_dot_configs: lampDotConfigs,
-                lamp_dash_configs: lampDashConfigs,
-            };
-
-            try {
-                const response = await fetch('/api/config', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(config),
-                });
-
-                if (!response.ok) throw new Error('Failed to save configuration');
-                
-                currentConfig = await response.json();
-                showNotification('Configuration saved successfully!');
-            } catch (error) {
-                console.error('Error saving config:', error);
-                showNotification('Failed to save configuration', 'error');
-            }
-        }
-
-        // Reset to default values
-        function resetToDefaults() {
+          // Load tempo choices
+          if (config.tempo_choices && config.tempo_choices.length > 0) {
+            loadTempoChoices(config.tempo_choices);
+          } else {
             loadTempoChoices([400, 700, 1000]);
-            
-            document.getElementById('dotPercussionProb').value = 0.12;
-            document.getElementById('dotPercussionProbValue').textContent = '0.12';
-            document.getElementById('dotWeight1').value = 70;
-            document.getElementById('dotWeight2').value = 20;
-            document.getElementById('dotWeight3').value = 10;
-            
-            document.getElementById('dashStringProb').value = 0.2;
-            document.getElementById('dashStringProbValue').textContent = '0.20';
-            document.getElementById('dashWeight1').value = 20;
-            document.getElementById('dashWeight2').value = 20;
-            document.getElementById('dashWeight3').value = 30;
-            document.getElementById('dashWeight4').value = 30;
-            
-            // Reset lamp probabilities
-            for (let i = 1; i <= 6; i++) {
-                document.getElementById(`lampDot${i}`).value = 0.3;
-                document.getElementById(`lampDot${i}Value`).textContent = '0.30';
-                document.getElementById(`lampDash${i}`).value = 0.3;
-                document.getElementById(`lampDash${i}Value`).textContent = '0.30';
-            }
-            
-            showNotification('Reset to default values');
+          }
+
+          // Update dot form fields
+          document.getElementById("dotPercussionProb").value =
+            config.dot_percussion_probability;
+          document.getElementById("dotPercussionProbValue").textContent =
+            config.dot_percussion_probability.toFixed(2);
+
+          document.getElementById("dotWeight1").value =
+            config.dot_choice_1_weight;
+          document.getElementById("dotWeight2").value =
+            config.dot_choice_2_weight;
+          document.getElementById("dotWeight3").value =
+            config.dot_choice_3_weight;
+
+          // Update dash form fields
+          document.getElementById("dashStringProb").value =
+            config.dash_string_probability;
+          document.getElementById("dashStringProbValue").textContent =
+            config.dash_string_probability.toFixed(2);
+
+          document.getElementById("dashWeight1").value =
+            config.dash_choice_1_weight;
+          document.getElementById("dashWeight2").value =
+            config.dash_choice_2_weight;
+          document.getElementById("dashWeight3").value =
+            config.dash_choice_3_weight;
+          document.getElementById("dashWeight4").value =
+            config.dash_choice_4_weight;
+
+          // Load lamp dot probabilities
+          for (let i = 0; i < 6; i++) {
+            const lampNum = i + 1;
+            const probability = config.lamp_dot_configs[i].probability;
+            document.getElementById(`lampDot${lampNum}`).value = probability;
+            document.getElementById(`lampDot${lampNum}Value`).textContent =
+              probability.toFixed(2);
+          }
+
+          // Load lamp dash probabilities
+          for (let i = 0; i < 6; i++) {
+            const lampNum = i + 1;
+            const probability = config.lamp_dash_configs[i].probability;
+            document.getElementById(`lampDash${lampNum}`).value = probability;
+            document.getElementById(`lampDash${lampNum}Value`).textContent =
+              probability.toFixed(2);
+          }
+
+          showNotification("Configuration loaded successfully!");
+        } catch (error) {
+          console.error("Error loading config:", error);
+          showNotification("Failed to load configuration", "error");
+        }
+      }
+
+      // Save configuration to API
+      async function saveConfig() {
+        const lampDotConfigs = [];
+        const lampDashConfigs = [];
+
+        for (let i = 1; i <= 6; i++) {
+          lampDotConfigs.push({
+            probability: parseFloat(
+              document.getElementById(`lampDot${i}`).value,
+            ),
+          });
+          lampDashConfigs.push({
+            probability: parseFloat(
+              document.getElementById(`lampDash${i}`).value,
+            ),
+          });
         }
 
-        // Load config on page load
-        window.addEventListener('load', loadConfig);
+        const config = {
+          tempo_choices: getTempoChoices(),
+
+          dot_percussion_probability: parseFloat(
+            document.getElementById("dotPercussionProb").value,
+          ),
+          dot_choice_1_weight: parseInt(
+            document.getElementById("dotWeight1").value,
+          ),
+          dot_choice_2_weight: parseInt(
+            document.getElementById("dotWeight2").value,
+          ),
+          dot_choice_3_weight: parseInt(
+            document.getElementById("dotWeight3").value,
+          ),
+
+          dash_string_probability: parseFloat(
+            document.getElementById("dashStringProb").value,
+          ),
+          dash_choice_1_weight: parseInt(
+            document.getElementById("dashWeight1").value,
+          ),
+          dash_choice_2_weight: parseInt(
+            document.getElementById("dashWeight2").value,
+          ),
+          dash_choice_3_weight: parseInt(
+            document.getElementById("dashWeight3").value,
+          ),
+          dash_choice_4_weight: parseInt(
+            document.getElementById("dashWeight4").value,
+          ),
+
+          lamp_dot_configs: lampDotConfigs,
+          lamp_dash_configs: lampDashConfigs,
+        };
+
+        try {
+          const response = await fetch("/api/config", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(config),
+          });
+
+          if (!response.ok) throw new Error("Failed to save configuration");
+
+          currentConfig = await response.json();
+          showNotification("Configuration saved successfully!");
+        } catch (error) {
+          console.error("Error saving config:", error);
+          showNotification("Failed to save configuration", "error");
+        }
+      }
+
+      // Reset to default values
+      function resetToDefaults() {
+        loadTempoChoices([400, 700, 1000]);
+
+        document.getElementById("dotPercussionProb").value = 0.12;
+        document.getElementById("dotPercussionProbValue").textContent = "0.12";
+        document.getElementById("dotWeight1").value = 70;
+        document.getElementById("dotWeight2").value = 20;
+        document.getElementById("dotWeight3").value = 10;
+
+        document.getElementById("dashStringProb").value = 0.2;
+        document.getElementById("dashStringProbValue").textContent = "0.20";
+        document.getElementById("dashWeight1").value = 20;
+        document.getElementById("dashWeight2").value = 20;
+        document.getElementById("dashWeight3").value = 30;
+        document.getElementById("dashWeight4").value = 30;
+
+        // Reset lamp probabilities
+        for (let i = 1; i <= 6; i++) {
+          document.getElementById(`lampDot${i}`).value = 0.3;
+          document.getElementById(`lampDot${i}Value`).textContent = "0.30";
+          document.getElementById(`lampDash${i}`).value = 0.3;
+          document.getElementById(`lampDash${i}Value`).textContent = "0.30";
+        }
+
+        showNotification("Reset to default values");
+      }
+
+      // Load config on page load
+      window.addEventListener("load", loadConfig);
     </script>
-</body>
+  </body>
 </html>
