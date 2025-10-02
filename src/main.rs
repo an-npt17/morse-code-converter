@@ -16,7 +16,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::thread;
 use std::time::{Duration, Instant};
 use uuid::Uuid;
@@ -28,22 +28,22 @@ fn send_lamp() -> bool {
     let current_count = CONSECUTIVE_INSTRUMENT_COUNT.load(Ordering::SeqCst);
 
     if current_count >= 5 {
-        let start_time = LAMP_MODE_START_TIME.load(Ordering::SeqCst);
+        let mut start_time = LAMP_MODE_START.lock().unwrap();
 
         // If this is the first time entering lamp mode, record the start time
-        if start_time == 0 {
-            let now = Instant::now().elapsed().as_secs();
-            LAMP_MODE_START_TIME.store(now, Ordering::SeqCst);
+        if start_time.is_none() {
+            *start_time = Some(Instant::now());
+            LAMP_MODE_ACTIVE.store(true, Ordering::SeqCst);
+            println!("Entering lamp mode");
             return true;
         }
 
         // Check if 2 minutes (120 seconds) have passed
-        let now = Instant::now().elapsed().as_secs();
-        let elapsed = now.saturating_sub(start_time);
+        if let Some(start) = *start_time {
+            let elapsed = start.elapsed();
 
         if elapsed >= 120 {
             println!("Lamp mode timeout (2 minutes) - exiting lamp mode");
-            CONSECUTIVE_INSTRUMENT_COUNT.store(0, Ordering::SeqCst);
             LAMP_MODE_START_TIME.store(0, Ordering::SeqCst);
             return false;
         }
@@ -53,6 +53,36 @@ fn send_lamp() -> bool {
 
     false
 }
+
+fn reset_lamp_mode() {
+    println!("Resetting lamp mode - count back to 0");
+    CONSECUTIVE_INSTRUMENT_COUNT.store(0, Ordering::SeqCst);
+    LAMP_MODE_ACTIVE.store(false, Ordering::SeqCst);
+    let mut start_time = LAMP_MODE_START.lock().unwrap();
+    *start_time = None;
+}
+
+fn check_and_exit_lamp_mode() -> bool {
+    let current_count = CONSECUTIVE_INSTRUMENT_COUNT.load(Ordering::SeqCst);
+
+    if current_count >= 5 {
+        let start_time = LAMP_MODE_START.lock().unwrap();
+
+        if let Some(start) = *start_time {
+            let elapsed = start.elapsed();
+
+            // Exit lamp mode after message if 2 minutes passed
+            if elapsed >= Duration::from_secs(120) {
+                drop(start_time);
+                reset_lamp_mode();
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Message {
     id: String,
@@ -404,26 +434,26 @@ fn start_message_scheduler(
                 "Lamp mode active - using lamp tempo: {} ms",
                 config.lamp_tempo_ms
             );
+        } else {
+            let config = config_store.read();
+            let new_tempo = generate_random_tempo(&config.tempo_choices);
+            *tempo_store.write() = new_tempo;
+            println!("Normal mode - tempo: {} ms", new_tempo);
         }
 
         send_random_message(&store, &morse_converter, &tempo_store, &config_store);
+
         let config = config_store.read();
-        let new_tempo = if !is_lamp_mode {
-            generate_random_tempo(&config.tempo_choices)
-        } else {
-            config.lamp_tempo_ms
-        };
+        let new_tempo = generate_random_tempo(&config.tempo_choices);
         drop(config);
 
         *tempo_store.write() = new_tempo;
         println!("New tempo: {} ms", new_tempo);
+
         if !is_lamp_mode {
             CONSECUTIVE_INSTRUMENT_COUNT.fetch_add(1, Ordering::SeqCst);
         } else {
-            // Check if we've exited lamp mode after the message
-            if !send_lamp() {
-                println!("Exited lamp mode");
-            }
+            CONSECUTIVE_INSTRUMENT_COUNT.store(0, Ordering::SeqCst);
         }
 
         println!("Waiting 5 seconds before next message...");
