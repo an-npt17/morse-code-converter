@@ -172,9 +172,23 @@ fn load_config_from_file(file_path: &str) -> TransformerConfig {
 }
 
 fn save_messages_to_file(messages: &HashMap<String, Message>, file_path: &str) {
+    // Don't save if messages is empty and file already exists with content
+    if messages.is_empty() && Path::new(file_path).exists() {
+        if let Ok(content) = fs::read_to_string(file_path) {
+            if !content.trim().is_empty() && content.trim() != "{}" {
+                println!("WARNING: Skipping save of empty message store - file has existing data");
+                return;
+            }
+        }
+    }
+
     match serde_json::to_string_pretty(messages) {
         Ok(json_content) => match fs::write(file_path, json_content) {
-            Ok(_) => println!("Messages saved to {}", file_path),
+            Ok(_) => println!(
+                "Messages saved to {} ({} messages)",
+                file_path,
+                messages.len()
+            ),
             Err(e) => eprintln!("Failed to write messages to {}: {}", file_path, e),
         },
         Err(e) => eprintln!("Failed to serialize messages: {}", e),
