@@ -25,9 +25,7 @@ use warp::Filter;
 
 static CONSECUTIVE_INSTRUMENT_COUNT: AtomicU32 = AtomicU32::new(0);
 static CONFIG_CHANGED: AtomicBool = AtomicBool::new(false);
-static LAMP_MODE_ACTIVE: AtomicBool = AtomicBool::new(false);
 
-// Use lazy_static for the Instant timer
 use lazy_static::lazy_static;
 use std::sync::Mutex;
 
@@ -44,7 +42,6 @@ fn send_lamp() -> bool {
         // If this is the first time entering lamp mode, record the start time
         if start_time.is_none() {
             *start_time = Some(Instant::now());
-            LAMP_MODE_ACTIVE.store(true, Ordering::SeqCst);
             println!("Entering lamp mode");
             return true;
         }
@@ -53,9 +50,11 @@ fn send_lamp() -> bool {
         if let Some(start) = *start_time {
             let elapsed = start.elapsed();
 
-            if elapsed >= Duration::from_secs(120) {
-                println!("Lamp mode timeout (2 minutes) - will exit after current message");
-                return true; // Still in lamp mode for current message
+            if elapsed >= Duration::from_secs(10) {
+                println!("Lamp mode timeout (2 minutes) - exiting immediately");
+                drop(start_time);
+                reset_lamp_mode();
+                return false;
             }
         }
 
@@ -68,30 +67,8 @@ fn send_lamp() -> bool {
 fn reset_lamp_mode() {
     println!("Resetting lamp mode - count back to 0");
     CONSECUTIVE_INSTRUMENT_COUNT.store(0, Ordering::SeqCst);
-    LAMP_MODE_ACTIVE.store(false, Ordering::SeqCst);
     let mut start_time = LAMP_MODE_START.lock().unwrap();
     *start_time = None;
-}
-
-fn check_and_exit_lamp_mode() -> bool {
-    let current_count = CONSECUTIVE_INSTRUMENT_COUNT.load(Ordering::SeqCst);
-
-    if current_count >= 5 {
-        let start_time = LAMP_MODE_START.lock().unwrap();
-
-        if let Some(start) = *start_time {
-            let elapsed = start.elapsed();
-
-            // Exit lamp mode after message if 2 minutes passed
-            if elapsed >= Duration::from_secs(120) {
-                drop(start_time);
-                reset_lamp_mode();
-                return true;
-            }
-        }
-    }
-
-    false
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -490,29 +467,36 @@ fn start_message_scheduler(
     config_store: ConfigStore,
 ) {
     loop {
+        // Check lamp mode status and set appropriate tempo BEFORE sending
         let is_lamp_mode = send_lamp();
 
+        let config = config_store.read();
         if is_lamp_mode {
-            let config = config_store.read();
             *tempo_store.write() = config.lamp_tempo_ms;
             println!(
                 "Lamp mode active - using lamp tempo: {} ms",
                 config.lamp_tempo_ms
             );
         } else {
-            let config = config_store.read();
             let new_tempo = generate_random_tempo(&config.tempo_choices);
             *tempo_store.write() = new_tempo;
             println!("Normal mode - tempo: {} ms", new_tempo);
         }
+        drop(config);
 
+        // Send the message
         send_random_message(&store, &morse_converter, &tempo_store, &config_store);
 
-        // After message ends, check if we should exit lamp mode
-        let exited = check_and_exit_lamp_mode();
+        // After message ends, check if we just finished lamp mode or should increment counter
+        let was_lamp_mode = is_lamp_mode;
+        let is_still_lamp_mode = send_lamp();
 
-        if !is_lamp_mode && !exited {
+        if was_lamp_mode && !is_still_lamp_mode {
+            println!("Exited lamp mode after message completion");
+        } else if !was_lamp_mode && !is_still_lamp_mode {
             CONSECUTIVE_INSTRUMENT_COUNT.fetch_add(1, Ordering::SeqCst);
+            let count = CONSECUTIVE_INSTRUMENT_COUNT.load(Ordering::SeqCst);
+            println!("Consecutive instrument count: {}", count);
         }
 
         println!("Waiting 5 seconds before next message...");
@@ -562,6 +546,12 @@ fn send_random_message(
 
     send_morse_to_serial(&morse_code, current_tempo, config_store);
 
+    // After message completes, check if we should exit lamp mode due to completion
+    if send_lamp() {
+        println!("Message complete in lamp mode - resetting lamp mode");
+        reset_lamp_mode();
+    }
+
     let mut messages = store.write();
     if let Some(message) = messages.get_mut(&selected_message_id) {
         message.last_sent = Some(Utc::now());
@@ -573,10 +563,20 @@ fn send_morse_to_serial(morse_code: &str, tempo_ms: u64, config_store: &ConfigSt
     let mut serial_sender = SerialSender::new("/dev/serial0", 9600).unwrap();
 
     for char in morse_code.chars() {
+        // Check for config changes
         if CONFIG_CHANGED.load(Ordering::SeqCst) {
             println!("Config changed - interrupting current message");
             CONFIG_CHANGED.store(false, Ordering::SeqCst);
             return;
+        }
+
+        // Check for lamp mode timeout during message sending
+        if !send_lamp() {
+            let current_count = CONSECUTIVE_INSTRUMENT_COUNT.load(Ordering::SeqCst);
+            if current_count == 0 {
+                println!("Lamp mode timed out during message - stopping current message");
+                return;
+            }
         }
 
         let config = config_store.read().clone();
